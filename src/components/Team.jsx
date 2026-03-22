@@ -38,7 +38,7 @@ export default function Team() {
     <section
       id="zespol"
       ref={ref}
-      className="py-20 md:py-36 px-5 sm:px-10 md:px-16 bg-void"
+      className="relative z-10 py-20 md:py-36 px-5 sm:px-10 md:px-16 bg-void"
     >
       <div className="max-w-6xl mx-auto">
         <span className="font-mono text-[10px] text-magenta/50 uppercase tracking-[0.25em] block mb-3">
