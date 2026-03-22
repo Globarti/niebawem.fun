@@ -120,34 +120,33 @@ function LaserGrid() {
 }
 
 function SpotlightRings() {
-  const rings = 12;
+  const waves = 18;
   return (
-    <div className="flex items-center justify-center mt-8 h-64 md:h-80">
-      <div className="relative w-64 h-64 md:w-80 md:h-80">
-        {Array.from({ length: rings }, (_, i) => {
-          const t = i / (rings - 1); // 0 (center) → 1 (edge)
-          const insetPct = (1 - t) * 48; // inner rings smaller inset
-          const blur = t * 6; // blur grows outward
-          const opacity = 0.4 - t * 0.3; // fade outward
-          const speed = 6 + i * 3;
-          return (
+    <>
+      <style>{`
+        @keyframes ripple {
+          0% { transform: scale(0.3); opacity: 0.6; filter: blur(0px); }
+          100% { transform: scale(1); opacity: 0; filter: blur(8px); }
+        }
+      `}</style>
+      <div className="flex items-center justify-center mt-8 h-72 md:h-96">
+        <div className="relative w-72 h-72 md:w-96 md:h-96">
+          {Array.from({ length: waves }, (_, i) => (
             <div
               key={i}
-              className="absolute rounded-full border border-magenta"
+              className="absolute inset-0 rounded-full border border-magenta"
               style={{
-                inset: `${insetPct}%`,
-                opacity,
-                filter: `blur(${blur}px)`,
-                animation: `spin ${speed}s linear infinite${i % 2 === 0 ? ' reverse' : ''}`,
+                animation: `ripple ${4}s ease-out infinite`,
+                animationDelay: `${(i / waves) * 4}s`,
               }}
             />
-          );
-        })}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-3 h-3 rounded-full bg-magenta animate-pulse shadow-lg shadow-magenta/60" />
+          ))}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-magenta animate-pulse shadow-lg shadow-magenta/60" />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
