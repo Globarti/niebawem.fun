@@ -120,29 +120,51 @@ function LaserGrid() {
 }
 
 function SpotlightRings() {
-  const waves = 18;
+  const staticRings = 14;
   return (
     <>
       <style>{`
-        @keyframes ripple {
-          0% { transform: scale(0); opacity: 0.6; filter: blur(0px); }
-          100% { transform: scale(1); opacity: 0; filter: blur(8px); }
+        @keyframes pulse-outward {
+          0% { transform: scale(0); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 0; }
         }
       `}</style>
       <div className="flex items-center justify-center mt-8 h-72 md:h-96">
         <div className="relative w-72 h-72 md:w-96 md:h-96">
-          {Array.from({ length: waves }, (_, i) => (
-            <div
-              key={i}
-              className="absolute inset-0 rounded-full border border-magenta"
-              style={{
-                animation: `ripple ${8}s ease-out infinite`,
-                animationDelay: `${(i / waves) * 8}s`,
-              }}
-            />
-          ))}
+          {/* Static concentric rings */}
+          {Array.from({ length: staticRings }, (_, i) => {
+            const t = i / (staticRings - 1);
+            const insetPct = (1 - t) * 48;
+            return (
+              <div
+                key={i}
+                className="absolute rounded-full border border-magenta"
+                style={{
+                  inset: `${insetPct}%`,
+                  opacity: 0.08 + (1 - t) * 0.12,
+                }}
+              />
+            );
+          })}
+          {/* Slow blurred pulse moving outward */}
+          <div
+            className="absolute inset-0 rounded-full border-2 border-magenta"
+            style={{
+              animation: 'pulse-outward 6s ease-out infinite',
+              filter: 'blur(6px)',
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-full border-2 border-magenta"
+            style={{
+              animation: 'pulse-outward 6s ease-out infinite',
+              animationDelay: '3s',
+              filter: 'blur(6px)',
+            }}
+          />
+          {/* Center dot */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-magenta animate-pulse shadow-lg shadow-magenta/60" />
+            <div className="w-3 h-3 rounded-full bg-magenta shadow-lg shadow-magenta/60" />
           </div>
         </div>
       </div>
