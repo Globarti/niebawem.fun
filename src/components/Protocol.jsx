@@ -172,17 +172,27 @@ export default function Protocol() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.utils.toArray('.protocol-inner').forEach((inner) => {
-        gsap.from(inner, {
-          y: 80,
-          opacity: 0,
-          duration: 1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: inner.closest('.protocol-card'),
-            start: 'top 60%',
-          },
-        });
+      const cards = gsap.utils.toArray('.protocol-card');
+
+      cards.forEach((card, i) => {
+        if (i < cards.length - 1) {
+          ScrollTrigger.create({
+            trigger: card,
+            start: 'top top',
+            endTrigger: cards[i + 1],
+            end: 'top top',
+            pin: true,
+            pinSpacing: false,
+            onUpdate: (self) => {
+              const p = self.progress;
+              gsap.set(card, {
+                scale: 1 - p * 0.08,
+                filter: `blur(${p * 12}px)`,
+                opacity: 1 - p * 0.5,
+              });
+            },
+          });
+        }
       });
     }, ref);
 
@@ -196,7 +206,7 @@ export default function Protocol() {
           key={num}
           className={`protocol-card min-h-screen flex items-center justify-center px-5 sm:px-10 md:px-16 bg-gradient-to-b ${bg}`}
         >
-          <div className="protocol-inner max-w-2xl w-full">
+          <div className="max-w-2xl w-full">
             <span className="font-mono text-magenta/40 text-xs tracking-[0.3em]">
               {num}
             </span>
