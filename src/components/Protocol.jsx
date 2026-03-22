@@ -206,24 +206,28 @@ export default function Protocol() {
       const cards = gsap.utils.toArray('.protocol-card');
 
       cards.forEach((card, i) => {
-        if (i < cards.length - 1) {
-          ScrollTrigger.create({
-            trigger: card,
-            start: 'top top',
-            endTrigger: cards[i + 1],
-            end: 'top top',
-            pin: true,
-            pinSpacing: false,
-            onUpdate: (self) => {
-              const p = self.progress;
-              gsap.set(card, {
-                scale: 1 - p * 0.08,
-                filter: `blur(${p * 12}px)`,
-                opacity: 1 - p * 0.5,
-              });
-            },
-          });
-        }
+        const isLast = i === cards.length - 1;
+        const nextEl = isLast
+          ? document.getElementById('zespol')
+          : cards[i + 1];
+        if (!nextEl) return;
+
+        ScrollTrigger.create({
+          trigger: card,
+          start: 'top top',
+          endTrigger: nextEl,
+          end: 'top top',
+          pin: true,
+          pinSpacing: false,
+          onUpdate: (self) => {
+            const p = self.progress;
+            gsap.set(card, {
+              scale: 1 - p * 0.08,
+              filter: `blur(${p * 12}px)`,
+              opacity: 1 - p * 0.5,
+            });
+          },
+        });
       });
     }, ref);
 
