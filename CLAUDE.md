@@ -1,7 +1,7 @@
 # Niebawem.fun — Landing Page
 
 ## Linki społecznościowe
-- **Facebook**: https://www.facebook.com/profile.php?id=61587727553623
+- **Facebook**: https://www.facebook.com/niebawem.impro/
 - **Instagram**: https://www.instagram.com/niebawem.impro/
 - **Email**: kontakt@niebawem.fun
 - **Domena**: niebawem.fun

@@ -83,7 +83,7 @@ export default function Contact() {
           </a>
 
           <a
-            href="https://www.facebook.com/profile.php?id=61587727553623"
+            href="https://www.facebook.com/niebawem.impro/"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-magnetic border border-deep-purple/30 text-cream/60 hover:text-cream font-sans text-sm uppercase tracking-wider px-8 py-4 rounded-full transition-colors duration-300"

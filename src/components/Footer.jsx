@@ -67,7 +67,7 @@ export default function Footer() {
                 Instagram
               </a>
               <a
-                href="https://www.facebook.com/profile.php?id=61587727553623"
+                href="https://www.facebook.com/niebawem.impro/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-cream/40 hover:text-cream text-sm transition-colors duration-300 hover-lift font-light"
