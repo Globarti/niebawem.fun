@@ -88,8 +88,9 @@ function TypewriterCard() {
     '> Jeśli mnie słyszysz, mrugaj dwa razy.',
   ];
 
-  const [lines, setLines] = useState([]);
+  const [displayLine, setDisplayLine] = useState('');
   const [currentText, setCurrentText] = useState('');
+  const [fading, setFading] = useState(false);
   const msgRef = useRef(0);
   const charRef = useRef(0);
 
@@ -104,13 +105,22 @@ function TypewriterCard() {
         charRef.current++;
         timeout = setTimeout(tick, 25 + Math.random() * 45);
       } else {
+        // Line finished typing — wait, then fade out and start next
         timeout = setTimeout(() => {
-          setLines((prev) => [...prev.slice(-3), msg]);
+          setDisplayLine(msg);
           setCurrentText('');
-          charRef.current = 0;
-          msgRef.current = (msgRef.current + 1) % messages.length;
-          timeout = setTimeout(tick, 600);
-        }, 1800);
+          // Fade out previous line before typing next
+          timeout = setTimeout(() => {
+            setFading(true);
+            timeout = setTimeout(() => {
+              setFading(false);
+              setDisplayLine('');
+              charRef.current = 0;
+              msgRef.current = (msgRef.current + 1) % messages.length;
+              timeout = setTimeout(tick, 300);
+            }, 400);
+          }, 1800);
+        }, 200);
       }
     };
 
@@ -133,16 +143,26 @@ function TypewriterCard() {
         Każde słowo na żywo
       </h3>
 
-      <div className="bg-deep-purple/10 rounded-2xl p-4 font-mono text-xs leading-relaxed flex-1 mb-4 min-h-[180px]">
-        {lines.map((line, i) => (
-          <div key={i} className="text-cream/20 mb-1.5 break-words">
-            {line}
+      <div className="bg-deep-purple/10 rounded-2xl p-4 font-mono text-xs leading-relaxed flex-1 mb-4 h-[180px] overflow-hidden">
+        {displayLine && (
+          <div
+            className="text-cream/20 mb-1.5 break-words transition-opacity duration-400"
+            style={{ opacity: fading ? 0 : 1 }}
+          >
+            {displayLine}
           </div>
-        ))}
-        <div className="text-cream/60 break-words">
-          {currentText}
-          <span className="inline-block w-1.5 h-3.5 bg-magenta ml-0.5 -mb-0.5 animate-blink" />
-        </div>
+        )}
+        {currentText && (
+          <div className="text-cream/60 break-words">
+            {currentText}
+            <span className="inline-block w-1.5 h-3.5 bg-magenta ml-0.5 -mb-0.5 animate-blink" />
+          </div>
+        )}
+        {!currentText && !displayLine && (
+          <div className="text-cream/60">
+            <span className="inline-block w-1.5 h-3.5 bg-magenta ml-0.5 -mb-0.5 animate-blink" />
+          </div>
+        )}
       </div>
 
       <p className="text-cream/30 text-xs leading-relaxed">
