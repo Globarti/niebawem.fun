@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import App from '../components/App.jsx';
 ---
 
 <!DOCTYPE html>
@@ -7,126 +8,17 @@ import '../styles/global.css';
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Niebawem — grupa improwizacji teatralnej. Tworzymy teatr, który nie istnieje — dopóki nie wejdziemy na scenę." />
+    <meta name="description" content="Niebawem — grupa improwizacji teatralnej. Teatr, który najpierw słychać, a dopiero potem widać." />
+    <meta property="og:title" content="Niebawem — Improwizacja Teatralna" />
+    <meta property="og:description" content="Teatr, który najpierw słychać, a dopiero potem widać. Każdy spektakl istnieje tylko raz." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/images/sygnet.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Fira+Code:wght@400;500&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
     <title>Niebawem — Improwizacja Teatralna</title>
   </head>
-  <body>
-
-    <nav class="nav">
-      <a href="#hero" class="nav-logo">Niebawem</a>
-      <div class="nav-links">
-        <a href="#o-nas">O nas</a>
-        <a href="#spektakle">Spektakle</a>
-        <a href="#kontakt">Kontakt</a>
-      </div>
-    </nav>
-
-    <section id="hero" class="section hero">
-      <div class="hero-content fade-in">
-        <h1 class="hero-title">Niebawem</h1>
-        <p class="hero-subtitle">grupa improwizacji teatralnej</p>
-        <div class="hero-line"></div>
-      </div>
-      <a href="#o-nas" class="scroll-hint" aria-label="Przewiń w dół">
-        <span class="scroll-arrow">↓</span>
-      </a>
-    </section>
-
-    <section id="o-nas" class="section">
-      <div class="section-inner fade-in">
-        <h2 class="section-title">O nas</h2>
-        <div class="section-content">
-          <p class="lead">
-            Tworzymy teatr, który nie istnieje — dopóki nie wejdziemy na scenę.
-          </p>
-          <p>
-            Niebawem to grupa improwizatorów, dla których każdy spektakl jest
-            jedynym w swoim rodzaju. Bez scenariusza, bez powtórek. Tylko
-            moment, publiczność i scena.
-          </p>
-          <p>
-            Łączymy humor, dramat i poetykę chwili. Każdy wieczór z nami
-            to podróż w nieznane — dla was i dla nas.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="spektakle" class="section">
-      <div class="section-inner fade-in">
-        <h2 class="section-title">Spektakle</h2>
-        <div class="spektakle-grid">
-          <div class="spektakl-card">
-            <span class="spektakl-date">Wkrótce</span>
-            <h3>Impro w ciemno</h3>
-            <p>Format długi. Jedna historia. Zero przygotowania. Pełna improwizacja od pierwszego do ostatniego słowa.</p>
-          </div>
-          <div class="spektakl-card">
-            <span class="spektakl-date">Wkrótce</span>
-            <h3>Scenki z kapelusza</h3>
-            <p>Krótkie formy improwizowane na podstawie haseł od publiczności. Szybko, ostro, zabawnie.</p>
-          </div>
-          <div class="spektakl-card">
-            <span class="spektakl-date">Wkrótce</span>
-            <h3>Pojedynek impro</h3>
-            <p>Dwie drużyny. Jeden zwycięzca. Publiczność decyduje. Energia, rywalizacja i mnóstwo śmiechu.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="kontakt" class="section">
-      <div class="section-inner fade-in">
-        <h2 class="section-title">Kontakt</h2>
-        <div class="section-content kontakt-content">
-          <p class="lead">Chcesz nas zaprosić? Zagrać z nami? Porozmawiać?</p>
-          <div class="kontakt-links">
-            <a href="mailto:kontakt@niebawem.fun" class="kontakt-link">
-              kontakt@niebawem.fun
-            </a>
-            <a href="https://instagram.com/niebawem" class="kontakt-link" target="_blank" rel="noopener">
-              Instagram →
-            </a>
-          </div>
-          <p class="copyright">© 2026 Niebawem</p>
-        </div>
-      </div>
-    </section>
-
+  <body class="bg-void text-cream font-sans">
+    <App client:load />
   </body>
 </html>
-
-<script>
-  // Fade-in on scroll
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-
-  document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
-
-  // Smooth scroll
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      e.preventDefault();
-      document.querySelector(anchor.getAttribute('href'))?.scrollIntoView({
-        behavior: 'smooth',
-      });
-    });
-  });
-
-  // Nav scroll effect
-  const nav = document.querySelector('.nav');
-  window.addEventListener('scroll', () => {
-    nav?.classList.toggle('nav-scrolled', window.scrollY > 50);
-  });
-</script>
