@@ -3,15 +3,15 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 const members = [
-  { name: 'Damian Samosyn', initials: 'DS', img: null },
-  { name: 'Rafal Smietana', initials: 'RS', img: null },
-  { name: 'Bartek Pochylski', initials: 'BP', img: '/images/portraits/bartek-p.jpg' },
-  { name: 'Bartek Glowacki', initials: 'BG', img: null },
-  { name: 'Kosma Masny', initials: 'KM', img: '/images/portraits/kosma.jpg' },
-  { name: 'Zosia Sniegocka', initials: 'ZS', img: null },
-  { name: 'Rafal Jakubanis', initials: 'RJ', img: null },
   { name: 'Paweł Czarnocki', initials: 'PC', img: '/images/portraits/pawel.jpg' },
+  { name: 'Bartek Głowacki', initials: 'BG', img: null },
+  { name: 'Rafał Jakubanis', initials: 'RJ', img: null },
   { name: 'Julia Korsakowska-Grzelczyk', initials: 'JK', img: '/images/portraits/julka.jpg' },
+  { name: 'Kosma Masny', initials: 'KM', img: '/images/portraits/kosma.jpg' },
+  { name: 'Bartek Pochylski', initials: 'BP', img: '/images/portraits/bartek-p.jpg' },
+  { name: 'Damian Samosyn', initials: 'DS', img: null },
+  { name: 'Rafał Śmietana', initials: 'RŚ', img: null },
+  { name: 'Zosia Śniegocka', initials: 'ZŚ', img: null },
 ];
 
 export default function Team() {
