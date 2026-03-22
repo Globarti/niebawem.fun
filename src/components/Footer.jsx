@@ -11,13 +11,10 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2.5 mb-4">
               <img
-                src="/images/sygnet_white.svg"
-                alt=""
+                src="/images/logo_white.svg"
+                alt="niebawem"
                 className="h-6 w-auto opacity-80"
               />
-              <span className="font-sans font-bold text-cream text-lg tracking-tight">
-                niebawem
-              </span>
             </div>
             <p className="text-cream/30 text-sm leading-relaxed font-light max-w-xs">
               Grupa improwizacji teatralnej. Teatr, który najpierw słychać, a
@@ -62,12 +59,20 @@ export default function Footer() {
                 kontakt@niebawem.fun
               </a>
               <a
-                href="https://instagram.com/niebawem"
+                href="https://www.instagram.com/niebawem.impro/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-cream/40 hover:text-cream text-sm transition-colors duration-300 hover-lift font-light"
               >
-                @niebawem
+                Instagram
+              </a>
+              <a
+                href="https://www.facebook.com/profile.php?id=61587727553623"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cream/40 hover:text-cream text-sm transition-colors duration-300 hover-lift font-light"
+              >
+                Facebook
               </a>
             </div>
 

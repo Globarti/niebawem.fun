@@ -37,13 +37,10 @@ export default function Navbar() {
           className="flex items-center gap-2.5 hover-lift"
         >
           <img
-            src="/images/sygnet_white.svg"
-            alt=""
+            src="/images/logo_white.svg"
+            alt="niebawem"
             className="h-5 w-auto opacity-90"
           />
-          <span className="font-sans font-bold text-sm tracking-tight text-cream">
-            niebawem
-          </span>
         </button>
 
         {/* Desktop links */}

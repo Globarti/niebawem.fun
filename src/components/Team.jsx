@@ -7,7 +7,7 @@ const members = [
   { name: 'Rafal Smietana', initials: 'RS', img: null },
   { name: 'Bartek Pochylski', initials: 'BP', img: '/images/portraits/bartek-p.jpg' },
   { name: 'Bartek Glowacki', initials: 'BG', img: null },
-  { name: 'Kosma Masny', initials: 'KM', img: null },
+  { name: 'Kosma Masny', initials: 'KM', img: '/images/portraits/kosma.jpg' },
   { name: 'Zosia Sniegocka', initials: 'ZS', img: null },
   { name: 'Rafal Jakubanis', initials: 'RJ', img: null },
   { name: 'Paweł Czarnocki', initials: 'PC', img: '/images/portraits/pawel.jpg' },

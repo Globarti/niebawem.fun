@@ -58,7 +58,7 @@ export default function Contact() {
           </a>
 
           <a
-            href="https://instagram.com/niebawem"
+            href="https://www.instagram.com/niebawem.impro/"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-magnetic border border-deep-purple/30 text-cream/60 hover:text-cream font-sans text-sm uppercase tracking-wider px-8 py-4 rounded-full transition-colors duration-300"
@@ -66,6 +66,31 @@ export default function Contact() {
             <span className="btn-bg bg-deep-purple/30 rounded-full" />
             <span className="relative z-10 flex items-center gap-2">
               Instagram
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 17L17 7M17 7H7M17 7v10"
+                />
+              </svg>
+            </span>
+          </a>
+
+          <a
+            href="https://www.facebook.com/profile.php?id=61587727553623"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-magnetic border border-deep-purple/30 text-cream/60 hover:text-cream font-sans text-sm uppercase tracking-wider px-8 py-4 rounded-full transition-colors duration-300"
+          >
+            <span className="btn-bg bg-deep-purple/30 rounded-full" />
+            <span className="relative z-10 flex items-center gap-2">
+              Facebook
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
