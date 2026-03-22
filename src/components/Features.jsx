@@ -44,7 +44,7 @@ function ShufflerCard() {
               style={{
                 background:
                   stackPos === 0
-                    ? 'rgba(74,26,122,0.35)'
+                    ? '#1a0a30'
                     : 'rgba(74,26,122,0.15)',
                 borderColor:
                   stackPos === 0

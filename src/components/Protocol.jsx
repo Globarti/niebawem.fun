@@ -148,18 +148,21 @@ const steps = [
     title: 'Ciemność',
     desc: 'Gasną światła. Widzowie słyszą ciemność. Potem — pierwszy dźwięk, który buduje świat.',
     Visual: Waveform,
+    bg: 'from-void to-[#120824]',
   },
   {
     num: '02',
     title: 'Radio',
     desc: 'Audycja radiowa na żywo. Dżingle, muzyka, rap, rymowane wejścia — wszystko improwizowane.',
     Visual: LaserGrid,
+    bg: 'from-[#120824] to-[#1a0a30]',
   },
   {
     num: '03',
     title: 'Scena',
     desc: 'Światło odsłania scenę. Audycja płynnie staje się teatrem. Publiczność współtworzy spektakl.',
     Visual: SpotlightRings,
+    bg: 'from-[#1a0a30] to-deep-purple',
   },
 ];
 
@@ -169,15 +172,15 @@ export default function Protocol() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.utils.toArray('.protocol-card').forEach((card) => {
-        gsap.from(card, {
-          y: 60,
+      gsap.utils.toArray('.protocol-inner').forEach((inner) => {
+        gsap.from(inner, {
+          y: 80,
           opacity: 0,
-          duration: 0.8,
+          duration: 1,
           ease: 'power3.out',
           scrollTrigger: {
-            trigger: card,
-            start: 'top 75%',
+            trigger: inner.closest('.protocol-card'),
+            start: 'top 60%',
           },
         });
       });
@@ -187,32 +190,26 @@ export default function Protocol() {
   }, []);
 
   return (
-    <section
-      ref={ref}
-      className="py-24 md:py-36 px-5 sm:px-10 md:px-16"
-      style={{ background: 'linear-gradient(to bottom, #0A0A0A, #120824, #1a0a30, #4A1A7A)' }}
-    >
-      <div className="max-w-4xl mx-auto">
-        <div className="grid gap-8 md:gap-12">
-          {steps.map(({ num, title, desc, Visual }) => (
-            <div
-              key={num}
-              className="protocol-card rounded-3xl border border-cream/5 bg-cream/[0.03] backdrop-blur-sm p-8 md:p-12"
-            >
-              <span className="font-mono text-magenta/40 text-xs tracking-[0.3em]">
-                {num}
-              </span>
-              <h3 className="font-sans font-extrabold text-2xl sm:text-3xl md:text-5xl text-cream mt-3 tracking-tight">
-                {title}
-              </h3>
-              <p className="text-cream/40 text-sm md:text-base mt-4 max-w-md leading-relaxed font-light">
-                {desc}
-              </p>
-              <Visual />
-            </div>
-          ))}
+    <section ref={ref}>
+      {steps.map(({ num, title, desc, Visual, bg }) => (
+        <div
+          key={num}
+          className={`protocol-card min-h-screen flex items-center justify-center px-5 sm:px-10 md:px-16 bg-gradient-to-b ${bg}`}
+        >
+          <div className="protocol-inner max-w-2xl w-full">
+            <span className="font-mono text-magenta/40 text-xs tracking-[0.3em]">
+              {num}
+            </span>
+            <h3 className="font-sans font-extrabold text-3xl sm:text-4xl md:text-6xl text-cream mt-3 tracking-tight">
+              {title}
+            </h3>
+            <p className="text-cream/40 text-sm md:text-base mt-4 md:mt-6 max-w-md leading-relaxed font-light">
+              {desc}
+            </p>
+            <Visual />
+          </div>
         </div>
-      </div>
+      ))}
     </section>
   );
 }
