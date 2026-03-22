@@ -125,7 +125,7 @@ function SpotlightRings() {
     <>
       <style>{`
         @keyframes ripple {
-          0% { transform: scale(0.3); opacity: 0.6; filter: blur(0px); }
+          0% { transform: scale(0); opacity: 0.6; filter: blur(0px); }
           100% { transform: scale(1); opacity: 0; filter: blur(8px); }
         }
       `}</style>
@@ -136,8 +136,8 @@ function SpotlightRings() {
               key={i}
               className="absolute inset-0 rounded-full border border-magenta"
               style={{
-                animation: `ripple ${4}s ease-out infinite`,
-                animationDelay: `${(i / waves) * 4}s`,
+                animation: `ripple ${8}s ease-out infinite`,
+                animationDelay: `${(i / waves) * 8}s`,
               }}
             />
           ))}
