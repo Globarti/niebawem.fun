@@ -58,12 +58,9 @@ function ShufflerCard() {
                 {step.label}
               </span>
               <p
-                className="text-xs mt-0.5 leading-relaxed transition-all duration-500"
+                className="text-xs mt-0.5 leading-relaxed transition-colors duration-500"
                 style={{
                   color: i === active ? 'rgba(253,244,255,0.5)' : 'rgba(253,244,255,0.15)',
-                  maxHeight: i === active ? '40px' : '0px',
-                  overflow: 'hidden',
-                  opacity: i === active ? 1 : 0,
                 }}
               >
                 {step.desc}
