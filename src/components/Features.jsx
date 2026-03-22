@@ -6,21 +6,17 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
    Card 1 — Diagnostic Shuffler
    ═══════════════════════════════════════ */
 function ShufflerCard() {
-  const items = [
+  const steps = [
     { label: 'Ciemność', desc: 'Gasną światła. Cisza wypełnia salę.' },
     { label: 'Dźwięk', desc: 'Audycja radiowa rodzi się z ciemności.' },
     { label: 'Scena', desc: 'Światło odsłania teatr improwizowany.' },
   ];
 
-  const [order, setOrder] = useState([0, 1, 2]);
+  const [active, setActive] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setOrder((prev) => {
-        const next = [...prev];
-        next.unshift(next.pop());
-        return next;
-      });
+      setActive((prev) => (prev + 1) % 3);
     }, 3000);
     return () => clearInterval(id);
   }, []);
@@ -34,37 +30,47 @@ function ShufflerCard() {
         Od ciemności do sceny
       </h3>
 
-      <div className="relative h-48 flex-1 mb-4">
-        {order.map((itemIdx, stackPos) => {
-          const item = items[itemIdx];
-          return (
-            <div
-              key={item.label}
-              className="absolute inset-x-0 rounded-2xl p-5 border transition-all duration-700"
-              style={{
-                background:
-                  stackPos === 0
-                    ? '#1a0a30'
-                    : 'rgba(74,26,122,0.15)',
-                borderColor:
-                  stackPos === 0
-                    ? 'rgba(217,70,239,0.3)'
-                    : 'rgba(74,26,122,0.2)',
-                transform: `translateY(${stackPos * 18}px) scale(${1 - stackPos * 0.04})`,
-                opacity: 1 - stackPos * 0.3,
-                zIndex: 3 - stackPos,
-                transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-              }}
-            >
-              <span className="font-sans font-semibold text-cream text-sm">
-                {item.label}
+      <div className="flex-1 mb-4 flex flex-col gap-3">
+        {steps.map((step, i) => (
+          <div key={step.label} className="flex gap-3 items-start">
+            {/* Timeline line + dot */}
+            <div className="flex flex-col items-center pt-1">
+              <div
+                className="w-2.5 h-2.5 rounded-full border-2 transition-all duration-500 shrink-0"
+                style={{
+                  borderColor: i <= active ? '#D946EF' : 'rgba(74,26,122,0.3)',
+                  background: i <= active ? '#D946EF' : 'transparent',
+                  boxShadow: i === active ? '0 0 12px rgba(217,70,239,0.5)' : 'none',
+                }}
+              />
+              {i < 2 && (
+                <div className="w-px flex-1 min-h-[20px] transition-colors duration-500"
+                  style={{ background: i < active ? '#D946EF' : 'rgba(74,26,122,0.2)' }}
+                />
+              )}
+            </div>
+            {/* Content */}
+            <div className="pb-1">
+              <span
+                className="font-sans font-semibold text-sm transition-colors duration-500"
+                style={{ color: i <= active ? '#FDF4FF' : 'rgba(253,244,255,0.25)' }}
+              >
+                {step.label}
               </span>
-              <p className="text-cream/35 text-xs mt-1 leading-relaxed">
-                {item.desc}
+              <p
+                className="text-xs mt-0.5 leading-relaxed transition-all duration-500"
+                style={{
+                  color: i === active ? 'rgba(253,244,255,0.5)' : 'rgba(253,244,255,0.15)',
+                  maxHeight: i === active ? '40px' : '0px',
+                  overflow: 'hidden',
+                  opacity: i === active ? 1 : 0,
+                }}
+              >
+                {step.desc}
               </p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <p className="text-cream/30 text-xs leading-relaxed">
