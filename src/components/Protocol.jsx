@@ -120,21 +120,31 @@ function LaserGrid() {
 }
 
 function SpotlightRings() {
+  const rings = 12;
   return (
-    <div className="flex items-center justify-center mt-6 h-20 md:h-24">
-      <div className="relative w-20 h-20">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="absolute rounded-full border border-magenta/25"
-            style={{
-              inset: `${(4 - i) * 10}%`,
-              animation: `spin ${4 + i * 2}s linear infinite${i % 2 === 0 ? ' reverse' : ''}`,
-            }}
-          />
-        ))}
+    <div className="flex items-center justify-center mt-8 h-64 md:h-80">
+      <div className="relative w-64 h-64 md:w-80 md:h-80">
+        {Array.from({ length: rings }, (_, i) => {
+          const t = i / (rings - 1); // 0 (center) → 1 (edge)
+          const insetPct = (1 - t) * 48; // inner rings smaller inset
+          const blur = t * 6; // blur grows outward
+          const opacity = 0.4 - t * 0.3; // fade outward
+          const speed = 6 + i * 3;
+          return (
+            <div
+              key={i}
+              className="absolute rounded-full border border-magenta"
+              style={{
+                inset: `${insetPct}%`,
+                opacity,
+                filter: `blur(${blur}px)`,
+                animation: `spin ${speed}s linear infinite${i % 2 === 0 ? ' reverse' : ''}`,
+              }}
+            />
+          );
+        })}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-magenta animate-pulse shadow-lg shadow-magenta/50" />
+          <div className="w-3 h-3 rounded-full bg-magenta animate-pulse shadow-lg shadow-magenta/60" />
         </div>
       </div>
     </div>
