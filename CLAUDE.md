@@ -36,7 +36,7 @@
 - `Features.jsx` — "Radio Improwizowane" z 3 interaktywnymi kartami
 - `Philosophy.jsx` — parallax zdjęcie + word-by-word GSAP reveal
 - `Protocol.jsx` — 3 sticky stacking cards (Ciemność/Radio/Scena) z canvas
-- `Team.jsx` — grupowe zdjęcie + grid 9 członków
+- `Team.jsx` — grupowe zdjęcie + grid 8 członków
 - `Contact.jsx` — CTA "Chcesz nas zaprosić?" + email/Instagram/Facebook
 - `Footer.jsx` — rounded-t-4rem, nawigacja, sociale, status "Na żywo od 2024"
 
@@ -45,7 +45,7 @@
 - `philosophy.jpeg` — zdjęcie do sekcji filozofii
 - `team-stage.jpeg` — grupowe na scenie
 - `team-pionki.jpg` — zdjęcie zespołu
-- `portraits/` — portrety członków (bartek-p.jpg, julka.jpg, pawel.jpg, kosma.jpg)
+- `portraits/` — portrety członków (bartek-p.jpg, julka.jpg, pawel.jpg, patryk.jpg, tomek.jpg)
 - `logo.svg`, `logo_white.svg` — pełne logo (wordmark) — używane w Navbar i Footer
 - `sygnet.svg`, `sygnet_white.svg` — sygnet (ikona) — używany jako favicon
 
@@ -91,3 +91,54 @@
 ### Polskie znaki
 - Wszystkie teksty powinny mieć poprawne polskie znaki (ą, ę, ś, ć, ź, ż, ó, ł, ń)
 - Strona ma `lang="pl"` w `index.astro`
+
+## Generowanie dokumentów PDF — branding Niebawem
+
+### Kolory do druku (białe tło)
+- **Magenta** #D946EF — accent bar, nagłówki sekcji, bullet points
+- **Deep purple** #4A1A7A — nagłówki H2, tekst w headerze
+- **Void** #0A0A0A — body text, nagłówki H3
+- **Light purple** #F3E8FF — linie separatorów, obramowania tabel
+- **Gray** #666666 — footer, linki
+
+### Logo w PDF
+- Używaj `logo.svg` (ciemne, na białe tło) — NIE `logo_white.svg`
+- SVG trzeba skonwertować do PNG: `qlmanage -t -s 2400 -o /tmp/ public/images/logo.svg`
+- PNG z qlmanage jest kwadratowy (2400x2400) z dużym białym paddingiem — MUSI być przycięty:
+  ```python
+  from PIL import Image
+  import numpy as np
+  img = Image.open('/tmp/logo.svg.png').convert('RGBA')
+  arr = np.array(img)
+  non_white = np.where(arr[:,:,:3].mean(axis=2) < 250)
+  top, bottom = non_white[0].min(), non_white[0].max()
+  left, right = non_white[1].min(), non_white[1].max()
+  img.crop((left-5, top-5, right+5, bottom+5)).save('/tmp/logo_cropped.png')
+  ```
+- Rozmiary logo w PDF (A4):
+  - Strona tytułowa: ~91mm x 18mm
+  - Header na kolejnych stronach: ~38mm x 8mm
+
+### Fonty w PDF
+- **NIE używaj domyślnego Helvetica** — nie obsługuje polskich znaków (ą, ę, ś → czarne kwadraty)
+- Używaj **Helvetica Neue** z systemu macOS (obsługuje polski):
+  ```python
+  from reportlab.pdfbase.ttfonts import TTFont
+  pdfmetrics.registerFont(TTFont('HelvNeue', '/System/Library/Fonts/HelveticaNeue.ttc', subfontIndex=0))       # Regular
+  pdfmetrics.registerFont(TTFont('HelvNeueBold', '/System/Library/Fonts/HelveticaNeue.ttc', subfontIndex=4))    # Bold
+  pdfmetrics.registerFont(TTFont('HelvNeueLight', '/System/Library/Fonts/HelveticaNeue.ttc', subfontIndex=6))   # Light
+  pdfmetrics.registerFont(TTFont('HelvNeueMedium', '/System/Library/Fonts/HelveticaNeue.ttc', subfontIndex=10)) # Medium
+  ```
+
+### Gotowe narzędzie
+```bash
+python3 tools/generate_branded_pdf.py input.md [output.pdf]
+```
+Konwertuje dowolny markdown na branded PDF z logo, kolorami i polskimi znakami. Output domyślnie obok inputu z rozszerzeniem .pdf.
+
+### Struktura PDF
+- Górny pasek magenta (4mm) na stronie tytułowej
+- Logo → tytuł → subtitle → separator → treść
+- Header na kolejnych stronach: logo (lewo) + tytuł dokumentu (prawo)
+- Footer: "Improwizowane Radio  niebawem.fun" (lewo) + numer strony (prawo)
+- Narzędzie: reportlab (Platypus) — `pip3 install reportlab`

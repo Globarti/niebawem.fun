@@ -7,11 +7,10 @@ const members = [
   { name: 'Bartek Głowacki', initials: 'BG', img: null },
   { name: 'Rafał Jakubanis', initials: 'RJ', img: null },
   { name: 'Julia Korsakowska-Grzelczyk', initials: 'JK', img: '/images/portraits/julka.jpg' },
-  { name: 'Kosma Masny', initials: 'KM', img: '/images/portraits/kosma.jpg' },
+  { name: 'Patryk Pastewski', initials: 'PP', img: '/images/portraits/patryk.jpg' },
+  { name: 'Tomasz Piątek', initials: 'TP', img: '/images/portraits/tomek.jpg' },
   { name: 'Bartek Pochylski', initials: 'BP', img: '/images/portraits/bartek-p.jpg' },
   { name: 'Damian Samosyn', initials: 'DS', img: null },
-  { name: 'Rafał Śmietana', initials: 'RŚ', img: null },
-  { name: 'Zosia Śniegocka', initials: 'ZŚ', img: null },
 ];
 
 export default function Team() {
@@ -48,7 +47,7 @@ export default function Team() {
           Ludzie Niebawem
         </h2>
         <p className="text-cream/35 text-sm md:text-base max-w-lg mb-14 md:mb-20 leading-relaxed font-light">
-          Dziewięcioro improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
+          Ośmioro improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
         </p>
 
         {/* Team photo */}

@@ -39,7 +39,7 @@ export default function Navbar() {
           <img
             src="/images/logo_white.svg"
             alt="niebawem"
-            className="h-5 w-auto opacity-90"
+            className="h-8 w-auto opacity-90"
           />
         </button>
 
