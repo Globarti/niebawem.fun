@@ -4,9 +4,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 const members = [
   { name: 'Paweł Czarnocki', initials: 'PC', img: '/images/portraits/pawel.jpg' },
+  { name: 'Bartek Głowacki', initials: 'BG', img: '/images/portraits/bartek-g.jpg' },
+  { name: 'Rafał Jakubanis', initials: 'RJ', img: '/images/portraits/rafal.jpg' },
   { name: 'Julia Korsakowska-Grzelczyk', initials: 'JK', img: '/images/portraits/julka.jpg' },
   { name: 'Patryk Pastewski', initials: 'PP', img: '/images/portraits/patryk.jpg' },
   { name: 'Tomasz Piątek', initials: 'TP', img: '/images/portraits/tomek.jpg' },
+  { name: 'Damian Samosyn', initials: 'DS', img: '/images/portraits/damian.jpg' },
 ];
 
 export default function Team() {
@@ -43,7 +46,7 @@ export default function Team() {
           Ludzie Niebawem
         </h2>
         <p className="text-cream/35 text-sm md:text-base max-w-lg mb-14 md:mb-20 leading-relaxed font-light">
-          Czworo improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
+          Siedmioro improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
         </p>
 
         {/* Team photo */}
@@ -57,7 +60,7 @@ export default function Team() {
         </div>
 
         {/* Member grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
           {members.map((m) => (
             <div
               key={m.initials}
