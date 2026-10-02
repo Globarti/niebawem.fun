@@ -36,7 +36,7 @@
 - `Features.jsx` — "Radio Improwizowane" z 3 interaktywnymi kartami
 - `Philosophy.jsx` — parallax zdjęcie + word-by-word GSAP reveal
 - `Protocol.jsx` — 3 sticky stacking cards (Ciemność/Radio/Scena) z canvas
-- `Team.jsx` — grupowe zdjęcie + grid 7 członków
+- `Team.jsx` — grupowe zdjęcie + grid 6 członków
 - `Contact.jsx` — CTA "Chcesz nas zaprosić?" + email/Instagram/Facebook
 - `Footer.jsx` — rounded-t-4rem, nawigacja, sociale, status "Na żywo od 2024"
 
@@ -45,7 +45,7 @@
 - `philosophy.jpeg` — zdjęcie do sekcji filozofii
 - `team-stage.jpeg` — grupowe na scenie
 - `team-pionki.jpg` — zdjęcie zespołu
-- `portraits/` — portrety członków (bartek-g.jpg, damian.jpg, julka.jpg, pawel.jpg, patryk.jpg, rafal.jpg, tomek.jpg)
+- `portraits/` — portrety członków (bartek-g.jpg, damian.jpg, julka.jpg, pawel.jpg, patryk.jpg, tomek.jpg)
 - `logo.svg`, `logo_white.svg` — pełne logo (wordmark) — używane w Navbar i Footer
 - `sygnet.svg`, `sygnet_white.svg` — sygnet (ikona) — używany jako favicon
 

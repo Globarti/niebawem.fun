@@ -5,7 +5,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 const members = [
   { name: 'Paweł Czarnocki', initials: 'PC', img: '/images/portraits/pawel.jpg' },
   { name: 'Bartek Głowacki', initials: 'BG', img: '/images/portraits/bartek-g.jpg' },
-  { name: 'Rafał Jakubanis', initials: 'RJ', img: '/images/portraits/rafal.jpg' },
   { name: 'Julia Korsakowska-Grzelczyk', initials: 'JK', img: '/images/portraits/julka.jpg' },
   { name: 'Patryk Pastewski', initials: 'PP', img: '/images/portraits/patryk.jpg' },
   { name: 'Tomasz Piątek', initials: 'TP', img: '/images/portraits/tomek.jpg' },
@@ -46,7 +45,7 @@ export default function Team() {
           Ludzie Niebawem
         </h2>
         <p className="text-cream/35 text-sm md:text-base max-w-lg mb-14 md:mb-20 leading-relaxed font-light">
-          Siedmioro improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
+          Sześcioro improwizatorów, dla których każdy spektakl jest jedynym w swoim rodzaju.
         </p>
 
         {/* Team photo */}
