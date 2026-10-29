@@ -80,7 +80,9 @@ button { font: inherit; cursor: pointer; }
 .pad .s { font-size: 12px; color: var(--muted); line-height: 1.3; }
 .pad.playing { background: #2a1630; border-color: var(--magenta); box-shadow: 0 0 0 1px var(--magenta) inset; }
 .pad.empty .t { color: var(--muted); }
-.pad .rec { position: absolute; right: 8px; bottom: 8px; font-family: var(--f-mono); font-size: 11px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.pad .tools { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; }
+.pad .rec, .pad .up { font-family: var(--f-mono); font-size: 11px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.pad .up:hover, .pad .rec:hover { color: var(--cream); border-color: var(--magenta); }
 .pad .rec.recording { color: var(--void); background: #ff4d4d; border-color: #ff4d4d; }
 .pad.recording { border-color: #ff4d4d; }
 
@@ -141,7 +143,7 @@ button { font: inherit; cursor: pointer; }
   <div class="help">
     <div>Klawisze pokazane na padach odpalają audycje, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> łapie najbliższą stację na skali, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
     <div>Na skali nadaje cały eter: oprócz padów grają też „obce” stacje, alfabet Morse’a i puste nośne. Gałką kręci losowa ręka, więc strojenie za każdym razem brzmi inaczej.</div>
-    <div>Ostatnie trzy pady są Wasze: <b>● nagraj</b> → mówicie lub śpiewacie → <b>■</b>. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
+    <div>Ostatnie pady są Wasze: <b>● nagraj</b> z mikrofonu albo <b>⇪ wgraj</b> plik audio (mp3, m4a, wav…) z komputera lub telefonu. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
   </div>
 </div>
@@ -168,6 +170,8 @@ const PADS = [
   { id: 'user1', t: 'Wasze nagranie 1', s: 'pusto', f: 90.4, user: true },
   { id: 'user2', t: 'Wasze nagranie 2', s: 'pusto', f: 97.0, user: true },
   { id: 'user3', t: 'Wasze nagranie 3', s: 'pusto', f: 107.3, user: true },
+  { id: 'user4', t: 'Wasze nagranie 4', s: 'pusto', f: 88.9, user: true },
+  { id: 'user5', t: 'Wasze nagranie 5', s: 'pusto', f: 102.9, user: true },
 ];
 const BACKGROUND = [
   { id: 'koncert', f: 88.4 }, { id: 'rynek', f: 92.3 }, { id: 'godzina', f: 97.7 }, { id: 'poezja', f: 102.4 },
@@ -360,8 +364,9 @@ async function loadSamples() {
   const morse = await renderMorse(); st.morse.buf = morse; startLoop(st.morse);
   for (const a of ALL.filter(a => a.synth === 'carrier')) { st[a.id].buf = renderCarrier(); startLoop(st[a.id]); }
   for (const p of PADS.filter(p => p.user)) {
-    const blob = await idbGet(p.id);
-    if (blob) { try { st[p.id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(p.id); startLoop(st[p.id]); } catch (e) {} }
+    const saved = await idbGet(p.id); if (!saved) continue;
+    const blob = saved.blob || saved;
+    try { st[p.id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(p.id, saved.name); startLoop(st[p.id]); } catch (e) {}
   }
 }
 
@@ -431,13 +436,33 @@ async function toggleRecord(id) {
     const blob = new Blob(chunks, { type: mr.mimeType });
     padEl(id).classList.remove('recording'); recBtn(id).classList.remove('recording'); recBtn(id).textContent = '● nagraj';
     rec = null;
-    try { st[id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(id); startLoop(st[id]); idbSet(id, blob); }
-    catch (e) { $('station').textContent = 'Nie udało się odczytać nagrania.'; }
+    await setUserAudio(id, blob, null);
   };
   rec = { id, mr }; mr.start();
   padEl(id).classList.add('recording'); recBtn(id).classList.add('recording'); recBtn(id).textContent = '■ stop';
 }
-function markUser(id) { const el = padEl(id); el.classList.remove('empty'); el.querySelector('.s').textContent = 'nagranie · ' + st[id].buf.duration.toFixed(1) + ' s'; }
+function markUser(id, name) {
+  const el = padEl(id); el.classList.remove('empty');
+  if (name) el.querySelector('.t').textContent = name;
+  el.querySelector('.s').textContent = (name ? 'plik' : 'nagranie') + ' · ' + st[id].buf.duration.toFixed(1) + ' s';
+}
+async function setUserAudio(id, blob, name) {
+  if (st[id].playing) stopPad(id);
+  try { st[id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); }
+  catch (e) { $('station').textContent = 'Nie udało się odczytać pliku — spróbuj mp3, m4a albo wav.'; return; }
+  markUser(id, name); startLoop(st[id]); idbSet(id, { blob, name });
+}
+// wgrywanie pliku: kontekst audio musi już działać, więc w razie potrzeby włączamy radio
+const fileIn = document.createElement('input'); fileIn.type = 'file'; fileIn.accept = 'audio/*,.mp3,.m4a,.wav,.ogg,.aac,.flac'; fileIn.hidden = true; fileIn.id = 'fileIn';
+document.body.appendChild(fileIn);
+let uploadFor = null;
+function pickFile(id) { uploadFor = id; fileIn.value = ''; fileIn.click(); }
+fileIn.addEventListener('change', async () => {
+  const f = fileIn.files[0]; if (!f || !uploadFor) return;
+  if (!ctx) await powerOn();
+  const name = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').slice(0, 40);
+  await setUserAudio(uploadFor, f, name);
+});
 function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open('radio-niebawem', 1); r.onupgradeneeded = () => r.result.createObjectStore('rec'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
 async function idbGet(k) { try { const d = await idb(); return await new Promise(res => { const q = d.transaction('rec').objectStore('rec').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
 async function idbSet(k, v) { try { const d = await idb(); d.transaction('rec', 'readwrite').objectStore('rec').put(v, k); } catch (e) {} }
@@ -640,18 +665,22 @@ PADS.forEach(p => {
   b.className = 'pad' + (p.user ? ' empty' : ''); b.id = 'pad-' + p.id; b.tabIndex = 0; b.setAttribute('role', 'button');
   b.innerHTML = `<span class="k"><span>${p.key.toUpperCase()}</span><span>${p.f.toFixed(1).replace('.', ',')}</span></span><span class="t"></span><span class="s"></span>`;
   b.querySelector('.t').textContent = p.t; b.querySelector('.s').textContent = p.s;
-  b.addEventListener('click', e => { if (e.target.closest('.rec')) return; playPad(p.id); });
+  b.addEventListener('click', e => { if (e.target.closest('.tools')) return; playPad(p.id); });
   b.addEventListener('keydown', e => { if (e.key === 'Enter') playPad(p.id); });
   if (p.user) {
+    const tools = document.createElement('span'); tools.className = 'tools';
+    const u = document.createElement('button'); u.className = 'up'; u.textContent = '⇪ wgraj';
+    u.addEventListener('click', e => { e.stopPropagation(); pickFile(p.id); });
     const r = document.createElement('button'); r.className = 'rec'; r.id = 'rec-' + p.id; r.textContent = '● nagraj';
     r.addEventListener('click', e => { e.stopPropagation(); toggleRecord(p.id); });
-    b.appendChild(r);
+    tools.append(u, r); b.appendChild(tools);
   }
   padsEl.appendChild(b);
 });
 const padEl = id => $('pad-' + id), recBtn = id => $('rec-' + id);
 
 async function powerOn() {
+  if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   await ctx.resume();
   buildGraph(); syncOutputs(); setHand('sweep');
