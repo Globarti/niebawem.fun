@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radio Niebawem — Strojenie</title>
+<link rel="icon" href="/images/sygnet_white.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Fira+Code:wght@400;500&family=Cormorant+Garamond:ital,wght@1,500&display=swap">
+<style>
+/* Układ: jedno „radio" — skala strojenia z magicznym okiem, pod spodem pad z audycjami. */
+:root {
+  --void: #0A0A0A;
+  --panel: #141017;
+  --panel-2: #1D1622;
+  --line: #3A2C44;
+  --cream: #FDF4FF;
+  --muted: #A99BB3;
+  --magenta: #D946EF;
+  --lime: #A4C639;
+  --eye: #7CFF6B;
+  --amber: #F5B85A;
+  --f-ui: "Sora", system-ui, sans-serif;
+  --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
+  --f-drama: "Cormorant Garamond", Georgia, serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--void); color: var(--cream); }
+body {
+  font-family: var(--f-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+header a img { height: 26px; display: block; }
+h1 { margin: 0; font-family: var(--f-drama); font-style: italic; font-weight: 500; font-size: clamp(28px, 5vw, 44px); line-height: 1; text-wrap: balance; }
+h1 span { color: var(--magenta); }
+.label { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+.radio { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 14px; }
+.top { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+.dial { width: 100%; height: 120px; display: block; border-radius: 10px; background: #1a120a; }
+.eye { width: 96px; height: 96px; display: block; }
+.status { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 28px; }
+.pill { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.on { color: var(--void); background: var(--eye); border-color: var(--eye); }
+.pill.tuning { color: var(--void); background: var(--amber); border-color: var(--amber); }
+.pill.mic { color: var(--void); background: var(--magenta); border-color: var(--magenta); }
+#station { font-family: var(--f-mono); font-size: 13px; color: var(--cream); }
+.scope { width: 100%; height: 48px; display: block; }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 18px; }
+.ctl { display: grid; gap: 4px; }
+.ctl input[type=range] { width: 100%; accent-color: var(--magenta); }
+.ctl .row { display: flex; justify-content: space-between; gap: 8px; }
+.ctl output { font-family: var(--f-mono); font-size: 12px; color: var(--cream); font-variant-numeric: tabular-nums; }
+
+.buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+button { font: inherit; cursor: pointer; }
+.btn { background: var(--panel-2); color: var(--cream); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { border-color: var(--magenta); }
+.btn:focus-visible, .pad:focus-visible { outline: 2px solid var(--magenta); outline-offset: 2px; }
+.btn.primary { background: var(--magenta); color: var(--void); border-color: var(--magenta); }
+.btn.active { background: var(--magenta); color: var(--void); border-color: var(--magenta); }
+.btn .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.meter { width: 80px; height: 8px; border-radius: 4px; background: var(--void); border: 1px solid var(--line); overflow: hidden; position: relative; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--lime); }
+.meter b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--magenta); left: 30%; }
+
+.pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pad { position: relative; min-height: 104px; text-align: left; background: var(--panel-2); color: var(--cream); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; align-content: space-between; gap: 6px; transition: transform .06s, border-color .15s, background .15s; }
+.pad:hover { border-color: var(--magenta); }
+.pad:active { transform: scale(.98); }
+.pad .k { font-family: var(--f-mono); font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+.pad .t { font-weight: 600; font-size: 15px; line-height: 1.2; }
+.pad .s { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.pad.playing { background: #2a1630; border-color: var(--magenta); box-shadow: 0 0 0 1px var(--magenta) inset; }
+.pad.empty .t { color: var(--muted); }
+.pad .rec { position: absolute; right: 8px; bottom: 8px; font-family: var(--f-mono); font-size: 11px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.pad .rec.recording { color: var(--void); background: #ff4d4d; border-color: #ff4d4d; }
+.pad.recording { border-color: #ff4d4d; }
+
+.help { color: var(--muted); font-size: 13px; display: grid; gap: 6px; max-width: 70ch; }
+.help kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; color: var(--cream); }
+.power { display: grid; place-items: center; gap: 10px; padding: 26px 12px; text-align: center; }
+.power p { margin: 0; color: var(--muted); max-width: 52ch; }
+
+@media (max-width: 720px) { .pads { grid-template-columns: repeat(2, minmax(0, 1fr)); } .eye { width: 72px; height: 72px; } }
+@media (prefers-reduced-motion: reduce) { .pad { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/" aria-label="Niebawem — strona główna"><img src="/images/logo_white.svg" alt="niebawem"></a>
+    <h1>Radio <span>Niebawem</span></h1>
+  </header>
+
+  <section class="radio" aria-label="Radio">
+    <div class="top">
+      <canvas class="dial" id="dial" aria-hidden="true"></canvas>
+      <canvas class="eye" id="eye" aria-hidden="true"></canvas>
+    </div>
+    <div class="status">
+      <span class="pill" id="state">WYŁĄCZONE</span>
+      <span id="station">UKF · 87,5–108 MHz</span>
+    </div>
+    <canvas class="scope" id="scope" aria-hidden="true"></canvas>
+
+    <div class="power" id="power">
+      <button class="btn primary" id="powerBtn"><span class="dot"></span>Włącz radio</button>
+      <p>Szum strojenia gra ciągle. Każdy dźwięk z padu albo z mikrofonu „łapie stację”: radio nastraja się na czas wypowiedzi, a po ciszy wraca do szukania.</p>
+    </div>
+
+    <div class="buttons" id="liveButtons" hidden>
+      <button class="btn" id="micBtn"><span class="dot"></span>Mikrofon <span class="meter" aria-hidden="true"><i id="micLevel"></i><b id="micThr"></b></span></button>
+      <button class="btn" id="holdBtn">Przytrzymaj strojenie <kbd style="font-family:var(--f-mono);font-size:11px;opacity:.7">Spacja</kbd></button>
+      <button class="btn" id="stopBtn">Stop</button>
+      <button class="btn" id="offBtn">Wyłącz</button>
+    </div>
+
+    <div class="controls">
+      <label class="ctl" for="thr"><span class="row"><span class="label">Czułość mikrofonu</span><output id="thrOut"></output></span><input id="thr" type="range" min="1" max="60" value="18"></label>
+      <label class="ctl" for="micGain"><span class="row"><span class="label">Głośność głosu</span><output id="micGainOut"></output></span><input id="micGain" type="range" min="0" max="300" value="120"></label>
+      <label class="ctl" for="noise"><span class="row"><span class="label">Głośność szumu</span><output id="noiseOut"></output></span><input id="noise" type="range" min="0" max="100" value="55"></label>
+      <label class="ctl" for="purity"><span class="row"><span class="label">Czystość stacji</span><output id="purityOut"></output></span><input id="purity" type="range" min="40" max="100" value="82"></label>
+      <label class="ctl" for="lockTime"><span class="row"><span class="label">Czas nastrajania</span><output id="lockTimeOut"></output></span><input id="lockTime" type="range" min="2" max="40" value="10"></label>
+      <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="8"></label>
+    </div>
+  </section>
+
+  <section aria-label="Pad audycji">
+    <div class="label" style="margin-bottom:10px">Pad · klawisze 1–9, 0, Q, W</div>
+    <div class="pads" id="pads"></div>
+  </section>
+
+  <div class="help">
+    <div><kbd>1</kbd>–<kbd>0</kbd>, <kbd>Q</kbd> <kbd>W</kbd> odpalają pady, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> trzyma stację, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
+    <div>Ostatnie trzy pady są Wasze: <b>● nagraj</b> → mówicie lub śpiewacie → <b>■</b>. Nagranie zostaje w tej przeglądarce.</div>
+    <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ───────────── Pady ───────────── */
+const PADS = [
+  { id: 'pogoda',     key: '1', t: 'Prognoza pogody',  s: 'Na północy zachmurzenie…', f: 91.4 },
+  { id: 'wiadomosci', key: '2', t: 'Wiadomości',       s: 'Z zoo uciekł paw',          f: 94.0 },
+  { id: 'koncert',    key: '3', t: 'Koncert życzeń',   s: 'Pani Halina z Radomia',     f: 97.2 },
+  { id: 'poezja',     key: '4', t: 'Poezja',           s: 'Litwo, Ojczyzno moja!',     f: 100.6 },
+  { id: 'kotek',      key: '5', t: 'Wlazł kotek',      s: 'piosenka, mówiona',         f: 102.3 },
+  { id: 'melodia',    key: '6', t: 'Melodia',          s: 'pozytywka, Wlazł kotek',    f: 89.1, synth: true },
+  { id: 'sygnal',     key: '7', t: 'Komunikat',        s: 'Uwaga, uwaga. Nadchodzi.',  f: 105.5 },
+  { id: 'godzina',    key: '8', t: 'Sygnał czasu',     s: 'Mówi Radio Niebawem',       f: 99.0 },
+  { id: 'rynek',      key: '9', t: 'Notowania',        s: 'Kurs marzeń spadł',         f: 106.8 },
+  { id: 'user1',      key: '0', t: 'Wasze nagranie 1', s: 'pusto', f: 88.3, user: true },
+  { id: 'user2',      key: 'q', t: 'Wasze nagranie 2', s: 'pusto', f: 95.6, user: true },
+  { id: 'user3',      key: 'w', t: 'Wasze nagranie 3', s: 'pusto', f: 103.9, user: true },
+];
+
+/* ───────────── Stan ───────────── */
+let ctx = null, N = {};
+const buffers = {};
+let t = 0;                 // 0 = pełne szukanie, 1 = idealnie nastrojone
+let dialPos = 96.0;        // MHz pokazywane na skali
+let dialTarget = 96.0, dialVel = 0;
+let micStream = null, micSrc = null, micOn = false, micActive = false, micLast = 0, micRms = 0;
+let holdActive = false;
+const playing = new Map(); // id -> {src, gain}
+let currentFreq = null, currentName = '';
+let ghostNext = 0, ghostUntil = 0;
+let rec = null;
+
+const $ = id => document.getElementById(id);
+const setOut = (id, txt) => { $(id + 'Out').textContent = txt; };
+const val = id => +$(id).value;
+function syncOutputs() {
+  setOut('thr', val('thr'));
+  setOut('micGain', val('micGain') + '%');
+  setOut('noise', val('noise') + '%');
+  setOut('purity', val('purity') + '%');
+  setOut('lockTime', (val('lockTime') / 10).toFixed(1) + ' s');
+  setOut('hang', (val('hang') / 10).toFixed(1) + ' s');
+  $('micThr').style.left = Math.min(100, val('thr') / 60 * 100) + '%';
+  if (N.micIn) N.micIn.gain.setTargetAtTime(val('micGain') / 100, ctx.currentTime, 0.05);
+}
+['thr', 'micGain', 'noise', 'purity', 'lockTime', 'hang'].forEach(id => $(id).addEventListener('input', syncOutputs));
+syncOutputs();
+
+/* ───────────── Budowa toru audio ───────────── */
+function makeNoise(seconds, pink) {
+  const len = Math.floor(ctx.sampleRate * seconds), b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    if (!pink) { d[i] = w; continue; }
+    b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+    b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+  }
+  return b;
+}
+function makeCrackle(seconds) {
+  const sr = ctx.sampleRate, len = Math.floor(sr * seconds), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+  for (let n = 0; n < seconds * 38; n++) {
+    const p = Math.floor(Math.random() * len), amp = (Math.random() ** 2) * (Math.random() < .5 ? -1 : 1), L = 20 + Math.random() * 300;
+    for (let i = 0; i < L && p + i < len; i++) d[p + i] += amp * Math.exp(-i / (L / 5)) * (Math.random() * 2 - 1);
+  }
+  return b;
+}
+function shaperCurve(k) {
+  const n = 2048, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); }
+  return c;
+}
+function loopSrc(buf, dest) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(); return s; }
+
+function buildGraph() {
+  const c = ctx;
+  N.master = c.createGain(); N.master.gain.value = 0.9;
+  N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -14; N.comp.ratio.value = 4; N.comp.attack.value = .004; N.comp.release.value = .2;
+  N.analyser = c.createAnalyser(); N.analyser.fftSize = 1024;
+  N.master.connect(N.comp); N.comp.connect(N.analyser); N.analyser.connect(c.destination);
+
+  // — SZUM: różowy przez wędrujący filtr (przelot po paśmie) + biały syk + trzaski
+  N.staticGain = c.createGain(); N.staticGain.connect(N.master);
+  N.hissBP = c.createBiquadFilter(); N.hissBP.type = 'bandpass'; N.hissBP.Q.value = .7; N.hissBP.frequency.value = 1800;
+  N.hissBP.connect(N.staticGain);
+  loopSrc(makeNoise(4, true), N.hissBP);
+  N.whiteHP = c.createBiquadFilter(); N.whiteHP.type = 'highpass'; N.whiteHP.frequency.value = 4000;
+  N.whiteG = c.createGain(); N.whiteG.gain.value = .12; N.whiteHP.connect(N.whiteG); N.whiteG.connect(N.staticGain);
+  loopSrc(makeNoise(3, false), N.whiteHP);
+  N.crackG = c.createGain(); N.crackG.gain.value = .5; N.crackG.connect(N.staticGain);
+  loopSrc(makeCrackle(7), N.crackG);
+
+  // — GWIZD heterodyny: ton dudnienia, który przy nastrajaniu zjeżdża do zera
+  N.whistle = c.createOscillator(); N.whistle.type = 'sine'; N.whistle.frequency.value = 1200;
+  N.whistleG = c.createGain(); N.whistleG.gain.value = 0;
+  N.whistle.connect(N.whistleG); N.whistleG.connect(N.master); N.whistle.start();
+
+  // — TOR GŁOSU: wejście (mikrofon + pady) → pasmo radiowe → chwianie → mod. pierścieniowa → przester → zaniki → bramka strojenia
+  N.input = c.createGain();
+  N.micIn = c.createGain(); N.micIn.gain.value = val('micGain') / 100; N.micIn.connect(N.input);
+  N.padIn = c.createGain(); N.padIn.gain.value = 1; N.padIn.connect(N.input);
+
+  N.hp = c.createBiquadFilter(); N.hp.type = 'highpass'; N.hp.frequency.value = 280;
+  N.lp = c.createBiquadFilter(); N.lp.type = 'lowpass'; N.lp.frequency.value = 900; N.lp.Q.value = 1.4;
+  N.peak = c.createBiquadFilter(); N.peak.type = 'peaking'; N.peak.frequency.value = 1500; N.peak.gain.value = 5; N.peak.Q.value = 1;
+  N.input.connect(N.hp); N.hp.connect(N.lp); N.lp.connect(N.peak);
+
+  // chwianie wysokości (rozstrojony odbiornik „pływa")
+  N.wobDelay = c.createDelay(.05); N.wobDelay.delayTime.value = .012;
+  N.wobLfo = c.createOscillator(); N.wobLfo.frequency.value = 5.3;
+  N.wobDepth = c.createGain(); N.wobDepth.gain.value = .003;
+  N.wobLfo.connect(N.wobDepth); N.wobDepth.connect(N.wobDelay.delayTime); N.wobLfo.start();
+  N.peak.connect(N.wobDelay);
+
+  // modulacja pierścieniowa = głos „kaczy” jak przy źle dostrojonym SSB
+  N.ringCar = c.createOscillator(); N.ringCar.frequency.value = 120;
+  N.ringVCA = c.createGain(); N.ringVCA.gain.value = 0; N.ringCar.connect(N.ringVCA.gain); N.ringCar.start();
+  N.ringWet = c.createGain(); N.ringWet.gain.value = .6;
+  N.ringDry = c.createGain(); N.ringDry.gain.value = .5;
+  N.wobDelay.connect(N.ringVCA); N.ringVCA.connect(N.ringWet);
+  N.wobDelay.connect(N.ringDry);
+  N.mix1 = c.createGain(); N.ringWet.connect(N.mix1); N.ringDry.connect(N.mix1);
+
+  // przester lampowy
+  N.shaper = c.createWaveShaper(); N.shaper.curve = shaperCurve(6); N.shaper.oversample = '2x';
+  N.distWet = c.createGain(); N.distWet.gain.value = .5;
+  N.distDry = c.createGain(); N.distDry.gain.value = .6;
+  N.mix1.connect(N.shaper); N.shaper.connect(N.distWet); N.mix1.connect(N.distDry);
+  N.mix2 = c.createGain(); N.distWet.connect(N.mix2); N.distDry.connect(N.mix2);
+
+  // zaniki (fading) — wolne LFO na głośności
+  N.fade = c.createGain(); N.fade.gain.value = 1;
+  N.fadeLfo = c.createOscillator(); N.fadeLfo.frequency.value = .9;
+  N.fadeDepth = c.createGain(); N.fadeDepth.gain.value = 0;
+  N.fadeLfo.connect(N.fadeDepth); N.fadeDepth.connect(N.fade.gain); N.fadeLfo.start();
+  N.mix2.connect(N.fade);
+
+  // bramka strojenia: ile głosu przebija się przez szum
+  N.tuneGate = c.createGain(); N.tuneGate.gain.value = 0;
+  N.fade.connect(N.tuneGate); N.tuneGate.connect(N.master);
+
+  // „duchy” innych stacji przy przelocie po skali
+  N.ghostBP = c.createBiquadFilter(); N.ghostBP.type = 'bandpass'; N.ghostBP.Q.value = 2.5; N.ghostBP.frequency.value = 1200;
+  N.ghostG = c.createGain(); N.ghostG.gain.value = 1;
+  N.ghostBP.connect(N.ghostG); N.ghostG.connect(N.master);
+
+  // analizator mikrofonu (detekcja głosu na surowym sygnale)
+  N.micAnalyser = c.createAnalyser(); N.micAnalyser.fftSize = 1024;
+}
+
+/* ───────────── Próbki ───────────── */
+async function loadSamples() {
+  await Promise.all(PADS.filter(p => !p.synth && !p.user).map(async p => {
+    try {
+      const r = await fetch('/radio/audio/' + p.id + '.m4a');
+      buffers[p.id] = await ctx.decodeAudioData(await r.arrayBuffer());
+    } catch (e) { console.warn('Nie wczytano', p.id, e); }
+  }));
+  buffers.melodia = await renderMelody();
+  for (const p of PADS.filter(p => p.user)) {
+    const blob = await idbGet(p.id);
+    if (blob) { try { buffers[p.id] = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(p.id, buffers[p.id].duration); } catch (e) {} }
+  }
+}
+async function renderMelody() {
+  // Wlazł kotek na płotek — pozytywka/harmonia, melodia ludowa
+  const G = 392, E = 329.6, F = 349.2, D = 293.7, C = 261.6;
+  const line1 = [G, E, E, F, D, D, C, E, G], line2 = [G, E, E, F, D, D, C, E, C];
+  const notes = [...line1, ...line2], q = .42, sr = 22050;
+  const len = (notes.length * q + 1.5);
+  const oc = new OfflineAudioContext(1, Math.ceil(len * sr), sr);
+  const out = oc.createGain(); out.gain.value = .45; out.connect(oc.destination);
+  notes.forEach((f, i) => {
+    const t0 = i * q, last = i === 8 || i === 17, dur = last ? q * 2 : q * .95;
+    const at = i >= 9 ? t0 + q : t0; // pauza między frazami
+    [1, 2, 3].forEach((h, hi) => {
+      const o = oc.createOscillator(); o.type = hi === 0 ? 'triangle' : 'sine'; o.frequency.value = f * h;
+      const g = oc.createGain(); const a = [.6, .25, .12][hi];
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(a, at + .015); g.gain.exponentialRampToValueAtTime(a * .25, at + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+      o.connect(g); g.connect(out); o.start(at); o.stop(at + dur + .05);
+    });
+  });
+  return oc.startRendering();
+}
+
+/* ───────────── Pady: odtwarzanie ───────────── */
+function playPad(id) {
+  if (!ctx) return;
+  if (playing.has(id)) { stopPad(id); return; }
+  const buf = buffers[id]; if (!buf) return;
+  const p = PADS.find(x => x.id === id);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const g = ctx.createGain(); g.gain.value = 1;
+  src.connect(g); g.connect(N.padIn);
+  src.start(ctx.currentTime + .05);
+  src.onended = () => { if (playing.get(id)?.src === src) { playing.delete(id); padEl(id).classList.remove('playing'); } };
+  playing.set(id, { src, gain: g });
+  padEl(id).classList.add('playing');
+  tuneTo(p.f, p.t);
+}
+function stopPad(id) {
+  const pl = playing.get(id); if (!pl) return;
+  pl.gain.gain.setTargetAtTime(0, ctx.currentTime, .05);
+  try { pl.src.stop(ctx.currentTime + .25); } catch (e) {}
+  playing.delete(id); padEl(id).classList.remove('playing');
+}
+function stopAll() { [...playing.keys()].forEach(stopPad); holdActive = false; $('holdBtn').classList.remove('active'); }
+function tuneTo(freq, name) { currentFreq = freq; currentName = name; dialTarget = freq; }
+
+/* ───────────── Mikrofon ───────────── */
+async function ensureMic() {
+  if (micStream) return true;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { $('station').textContent = 'Brak dostępu do mikrofonu: ' + e.message; return false; }
+  micSrc = ctx.createMediaStreamSource(micStream);
+  micSrc.connect(N.micAnalyser);
+  return true;
+}
+async function toggleMic() {
+  if (!ctx) return;
+  if (!micOn) {
+    if (!(await ensureMic())) return;
+    micSrc.connect(N.micIn); micOn = true;
+  } else {
+    try { micSrc.disconnect(N.micIn); } catch (e) {}
+    micOn = false; micActive = false;
+  }
+  $('micBtn').classList.toggle('active', micOn);
+}
+const micBuf = new Float32Array(1024);
+function updateMic(now) {
+  if (!micSrc) { micRms = 0; return; }
+  N.micAnalyser.getFloatTimeDomainData(micBuf);
+  let s = 0; for (let i = 0; i < micBuf.length; i++) s += micBuf[i] * micBuf[i];
+  const rms = Math.sqrt(s / micBuf.length) * 400; // ~0–100
+  micRms = micRms * .6 + rms * .4;
+  $('micLevel').style.width = Math.min(100, micRms / 60 * 100) + '%';
+  if (!micOn) return;
+  if (micRms > val('thr')) {
+    if (!micActive) tuneTo(+(88 + Math.random() * 19.5).toFixed(1), 'NA ŻYWO');
+    micActive = true; micLast = now;
+  } else if (micActive && now - micLast > val('hang') * 100) {
+    micActive = false;
+  }
+}
+
+/* ───────────── Nagrywanie własnych padów ───────────── */
+async function toggleRecord(id) {
+  if (!ctx) return;
+  if (rec && rec.id === id) { rec.mr.stop(); return; }
+  if (rec) return;
+  if (!(await ensureMic())) return;
+  const mr = new MediaRecorder(micStream); const chunks = [];
+  mr.ondataavailable = e => e.data.size && chunks.push(e.data);
+  mr.onstop = async () => {
+    const blob = new Blob(chunks, { type: mr.mimeType });
+    padEl(id).classList.remove('recording'); recBtn(id).classList.remove('recording'); recBtn(id).textContent = '● nagraj';
+    rec = null;
+    try { buffers[id] = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(id, buffers[id].duration); idbSet(id, blob); }
+    catch (e) { $('station').textContent = 'Nie udało się odczytać nagrania.'; }
+  };
+  rec = { id, mr }; mr.start();
+  padEl(id).classList.add('recording'); recBtn(id).classList.add('recording'); recBtn(id).textContent = '■ stop';
+}
+function markUser(id, dur) {
+  const el = padEl(id); el.classList.remove('empty');
+  el.querySelector('.s').textContent = 'nagranie · ' + dur.toFixed(1) + ' s';
+}
+
+/* IndexedDB: nagrania zostają w tej przeglądarce */
+function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open('radio-niebawem', 1); r.onupgradeneeded = () => r.result.createObjectStore('rec'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function idbGet(k) { try { const d = await idb(); return await new Promise(res => { const q = d.transaction('rec').objectStore('rec').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { try { const d = await idb(); d.transaction('rec', 'readwrite').objectStore('rec').put(v, k); } catch (e) {} }
+
+/* ───────────── Silnik strojenia (tick ~60 Hz) ───────────── */
+let lastTick = 0, wobPhase = 0;
+function tick(nowMs) {
+  requestAnimationFrame(tick);
+  if (!ctx) { draw(); return; }
+  const dt = Math.min(.1, (nowMs - lastTick) / 1000 || .016); lastTick = nowMs;
+  updateMic(nowMs);
+
+  const active = playing.size > 0 || micActive || holdActive;
+  const purity = val('purity') / 100;
+  const lockT = val('lockTime') / 10;
+  const target = active ? purity : 0;
+
+  // dojście do stacji: szybciej w górę z lekkim „przestrzeleniem”, wolniej w dół
+  const rate = active ? (3 / lockT) : 1.6;
+  t += (target - t) * Math.min(1, rate * dt);
+  // drżenie strojenia, słabnie przy stabilnym odbiorze
+  wobPhase += dt;
+  const jitter = (Math.sin(wobPhase * 7.1) * .5 + Math.sin(wobPhase * 2.3) * .5) * .06 * (1 - t) * (active ? 1 : .3);
+  const tt = Math.max(0, Math.min(1, t + jitter));
+  const d = 1 - tt;                        // rozstrojenie
+  const now = ctx.currentTime, k = .03;
+
+  // skala: przy szukaniu igła błądzi, przy odbiorze jedzie do stacji
+  if (active && currentFreq) {
+    dialPos += (currentFreq - dialPos) * Math.min(1, dt * 4 / lockT) + (Math.random() - .5) * .06 * d;
+  } else {
+    if (Math.random() < dt * .7) dialTarget = 87.5 + Math.random() * 20.5;
+    dialVel += (dialTarget - dialPos) * dt * .6; dialVel *= Math.pow(.2, dt);
+    dialPos += dialVel * dt;
+  }
+  dialPos = Math.max(87.5, Math.min(108, dialPos));
+
+  // szum
+  const noiseLvl = val('noise') / 100;
+  N.staticGain.gain.setTargetAtTime(noiseLvl * (.06 + .94 * Math.pow(d, 1.4)), now, k);
+  N.hissBP.frequency.setTargetAtTime(900 + 1600 * (.5 + .5 * Math.sin(dialPos * 3.1)) + 600 * d * Math.random(), now, .08);
+
+  // gwizd: wysoki przy dalekim rozstrojeniu, zjeżdża do zera przy nastrojeniu
+  const whistleF = 60 + 2600 * d * d + 400 * Math.abs(Math.sin(dialPos * 5.7)) * d;
+  if (now > ghostUntil) N.whistle.frequency.setTargetAtTime(whistleF, now, .05);
+  const whistleAmt = active ? .1 * Math.sin(Math.PI * Math.min(1, tt / Math.max(.4, purity))) * d * 1.6 : .018 * (.5 + .5 * Math.sin(dialPos * 9));
+  N.whistleG.gain.setTargetAtTime(Math.max(0, whistleAmt) * noiseLvl * 1.6, now, .04);
+
+  // głos
+  N.tuneGate.gain.setTargetAtTime(Math.pow(tt, 1.5) * 1.1, now, k);
+  N.lp.frequency.setTargetAtTime(650 + 3200 * Math.pow(tt, 1.3), now, k);
+  N.wobDepth.gain.setTargetAtTime(.0004 + .0045 * d, now, k);
+  N.wobLfo.frequency.setTargetAtTime(3 + 4 * d, now, .2);
+  N.ringCar.frequency.setTargetAtTime(8 + 220 * d, now, k);
+  const ring = Math.min(1, d * 1.5);
+  N.ringWet.gain.setTargetAtTime(.9 * ring, now, k);
+  N.ringDry.gain.setTargetAtTime(1 - .75 * ring, now, k);
+  const dist = .18 + .7 * d;
+  N.distWet.gain.setTargetAtTime(dist, now, k);
+  N.distDry.gain.setTargetAtTime(1 - dist * .7, now, k);
+  N.fadeDepth.gain.setTargetAtTime(.55 * d, now, .1);
+  N.fade.gain.setTargetAtTime(1 - .3 * d, now, .1);
+
+  // duchy innych stacji — tylko gdy nic nie odbieramy
+  if (!active && t < .15 && nowMs > ghostNext) {
+    ghostNext = nowMs + 1400 + Math.random() * 3800;
+    spawnGhost(noiseLvl);
+  }
+
+  // stan na ekranie
+  const st = $('state');
+  if (active && tt > purity - .08) { st.textContent = 'NASTROJONE'; st.className = 'pill on'; }
+  else if (active) { st.textContent = 'ŁAPIĘ STACJĘ…'; st.className = 'pill tuning'; }
+  else { st.textContent = micOn ? 'SZUKAM · MIKROFON NASŁUCHUJE' : 'SZUKAM…'; st.className = micOn ? 'pill mic' : 'pill'; }
+  $('station').textContent = active && currentName
+    ? currentName + ' · ' + dialPos.toFixed(1).replace('.', ',') + ' MHz'
+    : dialPos.toFixed(1).replace('.', ',') + ' MHz';
+  draw(tt);
+}
+
+function spawnGhost(noiseLvl) {
+  const ids = Object.keys(buffers).filter(k => buffers[k]); if (!ids.length) return;
+  const buf = buffers[ids[Math.floor(Math.random() * ids.length)]];
+  const dur = .25 + Math.random() * .7, off = Math.random() * Math.max(0, buf.duration - dur);
+  const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = .8 + Math.random() * .5;
+  const g = ctx.createGain(), now = ctx.currentTime, peak = .22 * noiseLvl;
+  g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(peak, now + dur * .4); g.gain.linearRampToValueAtTime(0, now + dur);
+  N.ghostBP.frequency.setValueAtTime(700 + Math.random() * 1600, now);
+  s.connect(g); g.connect(N.ghostBP); s.start(now, off, dur + .05);
+  // krótki świst przelotu
+  ghostUntil = now + dur;
+  N.whistle.frequency.cancelScheduledValues(now);
+  N.whistle.frequency.setValueAtTime(2400, now); N.whistle.frequency.exponentialRampToValueAtTime(80, now + dur * .5); N.whistle.frequency.exponentialRampToValueAtTime(2000, now + dur);
+}
+
+/* ───────────── Rysowanie: skala, magiczne oko, oscyloskop ───────────── */
+const dial = $('dial'), eye = $('eye'), scope = $('scope');
+function fit(cv) { const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1; if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); } return dpr; }
+const scopeBuf = new Uint8Array(1024);
+function draw(tt = 0) {
+  // skala
+  let dpr = fit(dial); let g = dial.getContext('2d'); const W = dial.width, H = dial.height;
+  const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, '#2a1b0c'); grd.addColorStop(1, '#130c06');
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  const glow = ctx ? .55 + .45 * tt : .25;
+  g.fillStyle = `rgba(245,184,90,${.08 * glow})`; g.fillRect(0, 0, W, H);
+  const pad = 22 * dpr, x = f => pad + (f - 87.5) / 20.5 * (W - 2 * pad);
+  g.strokeStyle = `rgba(245,184,90,${.5 + .4 * glow})`; g.fillStyle = g.strokeStyle; g.lineWidth = 1 * dpr;
+  g.font = `${11 * dpr}px "Fira Code", monospace`; g.textAlign = 'center';
+  for (let f = 88; f <= 108; f += .5) {
+    const big = f % 2 === 0, X = x(f);
+    g.beginPath(); g.moveTo(X, H * .52); g.lineTo(X, H * (big ? .30 : .42)); g.stroke();
+    if (big) g.fillText(f.toString(), X, H * .22);
+  }
+  g.font = `${9 * dpr}px "Fira Code", monospace`; g.textAlign = 'left'; g.fillText('MHz', 4 * dpr, H * .22);
+  // stacje
+  PADS.forEach(p => {
+    const X = x(p.f);
+    g.fillStyle = buffers[p.id] ? 'rgba(217,70,239,.85)' : 'rgba(217,70,239,.25)';
+    g.fillRect(X - 1.5 * dpr, H * .6, 3 * dpr, H * .1);
+  });
+  g.fillStyle = 'rgba(253,244,255,.55)'; g.font = `${10 * dpr}px "Sora", sans-serif`; g.textAlign = 'center';
+  ['Warszawa', 'Radom', 'Wilno', 'Lwów', 'Ciechanów', 'Niebawem'].forEach((n, i) => g.fillText(n, x(89 + i * 3.7), H * .88));
+  // igła
+  const NX = x(dialPos);
+  g.strokeStyle = '#ff5a3c'; g.lineWidth = 2.5 * dpr; g.shadowColor = '#ff5a3c'; g.shadowBlur = 8 * dpr * glow;
+  g.beginPath(); g.moveTo(NX, 4 * dpr); g.lineTo(NX, H - 4 * dpr); g.stroke(); g.shadowBlur = 0;
+
+  // magiczne oko (lampa EM84 / 6E5): zielony wachlarz zamyka się przy nastrojeniu
+  dpr = fit(eye); g = eye.getContext('2d'); const S = eye.width, R = S / 2;
+  g.clearRect(0, 0, S, S);
+  g.fillStyle = '#0d120b'; g.beginPath(); g.arc(R, R, R * .96, 0, Math.PI * 2); g.fill();
+  if (ctx) {
+    const shadow = (1 - tt) * Math.PI * .9 + .08;  // ciemny klin
+    const rg = g.createRadialGradient(R, R, R * .2, R, R, R * .9);
+    rg.addColorStop(0, `rgba(124,255,107,${.35 + .5 * tt})`); rg.addColorStop(1, `rgba(60,180,60,${.25 + .5 * tt})`);
+    g.fillStyle = rg; g.beginPath(); g.moveTo(R, R);
+    g.arc(R, R, R * .9, -Math.PI / 2 + shadow / 2, -Math.PI / 2 - shadow / 2 + Math.PI * 2); g.closePath(); g.fill();
+  }
+  g.fillStyle = '#050505'; g.beginPath(); g.arc(R, R, R * .28, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#3A2C44'; g.lineWidth = 2 * dpr; g.beginPath(); g.arc(R, R, R * .96, 0, Math.PI * 2); g.stroke();
+
+  // oscyloskop
+  dpr = fit(scope); g = scope.getContext('2d'); const SW = scope.width, SH = scope.height;
+  g.clearRect(0, 0, SW, SH);
+  g.strokeStyle = 'rgba(164,198,57,.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, SH / 2); g.lineTo(SW, SH / 2); g.stroke();
+  if (ctx) {
+    N.analyser.getByteTimeDomainData(scopeBuf);
+    g.strokeStyle = tt > .5 ? '#7CFF6B' : '#A4C639'; g.lineWidth = 1.5 * dpr; g.beginPath();
+    for (let i = 0; i < scopeBuf.length; i++) { const X = i / (scopeBuf.length - 1) * SW, Y = (scopeBuf[i] / 255) * SH; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }
+    g.stroke();
+  }
+}
+
+/* ───────────── UI ───────────── */
+const padsEl = $('pads');
+PADS.forEach(p => {
+  const b = document.createElement('div');
+  b.className = 'pad' + (p.user ? ' empty' : ''); b.id = 'pad-' + p.id; b.tabIndex = 0; b.setAttribute('role', 'button');
+  b.innerHTML = `<span class="k"><span>${p.key.toUpperCase()}</span><span>${p.f.toFixed(1).replace('.', ',')}</span></span><span class="t"></span><span class="s"></span>`;
+  b.querySelector('.t').textContent = p.t; b.querySelector('.s').textContent = p.s;
+  b.addEventListener('click', e => { if (e.target.closest('.rec')) return; playPad(p.id); });
+  b.addEventListener('keydown', e => { if (e.key === 'Enter') playPad(p.id); });
+  if (p.user) {
+    const r = document.createElement('button'); r.className = 'rec'; r.id = 'rec-' + p.id; r.textContent = '● nagraj';
+    r.addEventListener('click', e => { e.stopPropagation(); toggleRecord(p.id); });
+    b.appendChild(r);
+  }
+  padsEl.appendChild(b);
+});
+const padEl = id => $('pad-' + id), recBtn = id => $('rec-' + id);
+
+async function powerOn() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  await ctx.resume();
+  buildGraph(); syncOutputs();
+  $('power').hidden = true; $('liveButtons').hidden = false;
+  loadSamples();
+}
+async function powerOff() {
+  stopAll();
+  if (micStream) { micStream.getTracks().forEach(tr => tr.stop()); micStream = null; micSrc = null; }
+  micOn = micActive = false; $('micBtn').classList.remove('active');
+  await ctx.close(); ctx = null; N = {}; t = 0;
+  $('power').hidden = false; $('liveButtons').hidden = true;
+  $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = 'UKF · 87,5–108 MHz';
+}
+$('powerBtn').addEventListener('click', powerOn);
+$('offBtn').addEventListener('click', powerOff);
+$('micBtn').addEventListener('click', toggleMic);
+$('stopBtn').addEventListener('click', stopAll);
+const holdOn = () => { if (!ctx) return; if (!holdActive) tuneTo(+(88 + Math.random() * 19.5).toFixed(1), 'TRZYMAM STACJĘ'); holdActive = true; $('holdBtn').classList.add('active'); };
+const holdOff = () => { holdActive = false; $('holdBtn').classList.remove('active'); };
+$('holdBtn').addEventListener('pointerdown', holdOn);
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('holdBtn').addEventListener(ev, holdOff));
+
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input')) return;
+  if (e.repeat) { if (e.code === 'Space') e.preventDefault(); return; }
+  if (e.code === 'Space') { e.preventDefault(); holdOn(); return; }
+  if (e.key === 'Escape') { stopAll(); return; }
+  if (e.key.toLowerCase() === 'm') { toggleMic(); return; }
+  const p = PADS.find(x => x.key === e.key.toLowerCase()); if (p) playPad(p.id);
+});
+document.addEventListener('keyup', e => { if (e.code === 'Space') holdOff(); });
+
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
