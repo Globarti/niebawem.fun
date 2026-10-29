@@ -145,7 +145,7 @@ button { font: inherit; cursor: pointer; }
 
   <div class="help">
     <div>Klawisze pokazane na padach odpalają audycje, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> łapie najbliższą stację na skali, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
-    <div>Na skali nadaje cały eter: oprócz padów grają też „obce” stacje, alfabet Morse’a i puste nośne. Gałką kręci losowa ręka, więc strojenie za każdym razem brzmi inaczej.</div>
+    <div>Pod spodem działa symulacja prawdziwego odbiornika UKF: każda stacja jest modulowana na nośną FM, dochodzi szum radiowy, filtr i demodulator. Szum, trzaski i rwanie głosu przy złym dostrojeniu biorą się z fizyki, a gałką kręci losowa ręka. Oprócz padów nadają „obce” stacje, alfabet Morse’a i puste nośne.</div>
     <div>Ostatnie pady są Wasze: <b>● nagraj</b> z mikrofonu albo <b>⇪ wgraj</b> plik audio (mp3, m4a, wav…) z komputera lub telefonu. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
     <details class="credits">
@@ -204,7 +204,7 @@ const hand = { mode: 'pause', until: 0, vt: 0, anchor: 0, passing: null, lingere
 let micStream = null, micSrc = null, micOn = false, micActive = false, micLast = 0, micRms = 0;
 let holdStation = null;
 const order = [];          // kolejność odpalonych padów (ostatni wygrywa)
-let rec = null, crackleNext = 0, duck = 0, wobRW = 0;
+let rec = null;
 
 const $ = id => document.getElementById(id);
 const setOut = (id, txt) => { $(id + 'Out').textContent = txt; };
@@ -225,26 +225,6 @@ function syncOutputs() {
 syncOutputs();
 
 /* ───────────── Materiał dźwiękowy ───────────── */
-function makeNoise(seconds, pink) {
-  const len = Math.floor(ctx.sampleRate * seconds), b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
-  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-  for (let i = 0; i < len; i++) {
-    const w = Math.random() * 2 - 1;
-    if (!pink) { d[i] = w; continue; }
-    b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
-    b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
-    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
-  }
-  return b;
-}
-function makeCrackle(seconds, density) {
-  const sr = ctx.sampleRate, len = Math.floor(sr * seconds), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
-  for (let n = 0; n < seconds * density; n++) {
-    const p = Math.floor(Math.random() * len), amp = (Math.random() ** 2) * (Math.random() < .5 ? -1 : 1), L = 20 + Math.random() * 400;
-    for (let i = 0; i < L && p + i < len; i++) d[p + i] += amp * Math.exp(-i / (L / 5)) * (Math.random() * 2 - 1);
-  }
-  return b;
-}
 // lampowe nasycenie: asymetryczne, daje parzyste harmoniczne zamiast cyfrowego „przesteru"
 function tubeCurve(k, bias) {
   const n = 4096, c = new Float32Array(n), off = Math.tanh(k * bias);
@@ -290,56 +270,40 @@ function renderCarrier() {
 }
 
 /* ───────────── Tor audio ───────────── */
+// stacje → odbiornik FM (AudioWorklet: modulacja, szum radiowy, filtr p.cz., demodulator) → lampa → głośnik
 function buildGraph() {
   const c = ctx;
-  N.master = c.createGain(); N.master.gain.value = .95;
-  N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -16; N.comp.ratio.value = 3.5; N.comp.attack.value = .005; N.comp.release.value = .25;
+  N.master = c.createGain(); N.master.gain.value = 1.6;
+  N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -16; N.comp.ratio.value = 3; N.comp.attack.value = .005; N.comp.release.value = .25;
   N.analyser = c.createAnalyser(); N.analyser.fftSize = 1024;
   N.master.connect(N.comp); N.comp.connect(N.analyser); N.analyser.connect(c.destination);
 
   // głośnik starego odbiornika: wąskie pasmo, nosowy rezonans obudowy
-  N.spk = c.createBiquadFilter(); N.spk.type = 'highpass'; N.spk.frequency.value = 160; N.spk.Q.value = .8;
-  const pk1 = c.createBiquadFilter(); pk1.type = 'peaking'; pk1.frequency.value = 1050; pk1.gain.value = 4.5; pk1.Q.value = .9;
+  N.spk = c.createBiquadFilter(); N.spk.type = 'highpass'; N.spk.frequency.value = 150; N.spk.Q.value = .7;
+  const pk1 = c.createBiquadFilter(); pk1.type = 'peaking'; pk1.frequency.value = 1050; pk1.gain.value = 4; pk1.Q.value = .9;
   const pk2 = c.createBiquadFilter(); pk2.type = 'peaking'; pk2.frequency.value = 2900; pk2.gain.value = 2; pk2.Q.value = 1.4;
-  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4800; lp.Q.value = .6;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = .6;
   N.spk.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(N.master);
+  N.tube = c.createWaveShaper(); N.tube.curve = tubeCurve(1.6, .1); N.tube.oversample = '4x';
+  N.tube.connect(N.spk);
 
-  // odebrane stacje → dryf wysokości → migotanie (wielodrogowość) → lampa → głośnik
-  N.bus = c.createGain();
-  N.wob = c.createDelay(.05); N.wob.delayTime.value = .01;
-  N.flutter = c.createGain();
-  N.tube = c.createWaveShaper(); N.tube.curve = tubeCurve(1.8, .12); N.tube.oversample = '4x';
-  N.bus.connect(N.wob); N.wob.connect(N.flutter); N.flutter.connect(N.tube); N.tube.connect(N.spk);
-  N.busAnalyser = c.createAnalyser(); N.busAnalyser.fftSize = 512; N.bus.connect(N.busAnalyser);
+  // lista stacji: kolejność = numer wejścia odbiornika
+  for (const def of ALL) makeStation(def);
+  makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
+  N.list = Object.values(st);
+  N.rx = new AudioWorkletNode(c, 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+  N.list.forEach((s, i) => { s.idx = i; s.in.connect(N.rx, 0, i); });
+  N.rx.connect(N.tube);
+  N.freqArr = new Float32Array(N.list.length); N.ampArr = new Float32Array(N.list.length);
 
-  // szum między stacjami: różowy przez wędrujący filtr + syk + trzaski
-  N.staticGain = c.createGain(); N.staticGain.gain.value = 0; N.staticGain.connect(N.spk);
-  N.hissBP = c.createBiquadFilter(); N.hissBP.type = 'bandpass'; N.hissBP.Q.value = .6; N.hissBP.frequency.value = 1500; N.hissBP.connect(N.staticGain);
-  loop(makeNoise(5, true), N.hissBP);
-  const wh = c.createBiquadFilter(); wh.type = 'highpass'; wh.frequency.value = 3500;
-  const whg = c.createGain(); whg.gain.value = .14; wh.connect(whg); whg.connect(N.staticGain);
-  loop(makeNoise(3.7, false), wh);
-  N.crackG = c.createGain(); N.crackG.gain.value = .35; N.crackG.connect(N.staticGain);
-  loop(makeCrackle(11, 30), N.crackG);
-  N.burstG = c.createGain(); N.burstG.gain.value = 0; N.burstG.connect(N.spk);
-  loop(makeCrackle(6.3, 260), N.burstG);
-
-  // gwizd dudnienia przy sąsiedniej nośnej
-  N.whistle = c.createOscillator(); N.whistle.frequency.value = 1500;
-  N.whistleG = c.createGain(); N.whistleG.gain.value = 0;
-  N.whistle.connect(N.whistleG); N.whistleG.connect(N.spk); N.whistle.start();
-
-  // przydźwięk sieci 50 Hz z harmonicznymi, mocniejszy przy nośnej
+  // przydźwięk sieci 50 Hz — cichutki, z wnętrza odbiornika
   N.hum = c.createOscillator(); N.hum.type = 'sawtooth'; N.hum.frequency.value = 50;
-  const humLp = c.createBiquadFilter(); humLp.type = 'lowpass'; humLp.frequency.value = 380;
+  const humLp = c.createBiquadFilter(); humLp.type = 'lowpass'; humLp.frequency.value = 300;
   N.humG = c.createGain(); N.humG.gain.value = 0;
   N.hum.connect(humLp); humLp.connect(N.humG); N.humG.connect(N.master); N.hum.start();
 
   N.micIn = c.createGain(); N.micIn.gain.value = val('micGain') / 100;
   N.micAnalyser = c.createAnalyser(); N.micAnalyser.fftSize = 1024;
-
-  for (const def of ALL) makeStation(def);
-  makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
   N.micIn.connect(st.mic.in);
 }
 function loop(buf, dest, offset = 0) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(0, offset); return s; }
@@ -352,13 +316,10 @@ function freeFreq() {
   return +best.toFixed(1);
 }
 function makeStation(def) {
-  const c = ctx, s = { ...def, buf: null, src: null, playing: false, s: 0, fadeRW: Math.random(), power: def.pad || def.mic ? 1 : rnd(.45, .9) };
-  s.in = c.createGain();
-  s.lp = c.createBiquadFilter(); s.lp.type = 'lowpass'; s.lp.Q.value = 1.1; s.lp.frequency.value = 800;
-  s.sh = c.createWaveShaper(); s.sh.curve = tubeCurve(5 + Math.random() * 4, .2 + Math.random() * .2);
-  s.wet = c.createGain(); s.dry = c.createGain(); s.out = c.createGain(); s.out.gain.value = 0;
-  s.in.connect(s.lp); s.lp.connect(s.dry); s.lp.connect(s.sh); s.sh.connect(s.wet);
-  s.dry.connect(s.out); s.wet.connect(s.out); s.out.connect(N.bus);
+  // nadajniki w tle mają różną moc: od głośnych po ledwo słyszalne, trzeszczące
+  const power = def.pad || def.mic ? 1 : (Math.random() < .4 ? rnd(.05, .14) : rnd(.25, .9));
+  const s = { ...def, buf: null, src: null, playing: false, s: 0, power };
+  s.in = ctx.createGain();
   st[def.id] = s;
 }
 function startLoop(s) {
@@ -492,7 +453,7 @@ function newTuning(target) {
   return {
     st: target, age: 0,
     omega: rnd(4, 6.5) / lockT, zeta: rnd(.28, .6),        // każde strojenie ma inną „rękę"
-    resid: side * (1 - purity) * rnd(.15, .4),             // nigdy nie trafia idealnie
+    resid: side * (1 - purity) * rnd(.25, .6),             // nigdy nie trafia idealnie
     detour: Math.random() < .45 ? side * rnd(.18, .5) : 0,  // czasem przekręca za daleko
     detourT: rnd(.2, .4) * lockT,
   };
@@ -503,7 +464,7 @@ function moveDial(dt) {
   if (target) {
     if (!tuning || tuning.st !== target) tuning = newTuning(target);
     tuning.age += dt;
-    const lim = (1 - purity) * .45 + .006;
+    const lim = (1 - purity) * .65 + .006;
     tuning.resid = clamp(tuning.resid + (Math.random() - .5) * dt * .05, -lim, lim);
     const goal = target.f + tuning.resid + (tuning.age < tuning.detourT ? tuning.detour : 0);
     const { omega: w, zeta: z } = tuning;
@@ -547,62 +508,32 @@ function scanHand(dt) {
 }
 
 /* ───────────── Odbiornik (tick ~60 Hz) ───────────── */
-const BW = .11;   // szerokość „łapania" stacji w MHz
-const busBuf = new Float32Array(512);
+const IF_FC = 8500 / 80000;   // połowa szerokości filtra p.cz. w MHz (jak w fm-receiver.js)
+const strength = s => s.power / Math.sqrt(1 + ((x - s.f) / IF_FC) ** 8);
 let lastTick = 0;
 function tick(nowMs) {
   requestAnimationFrame(tick);
-  if (!ctx) { draw(0); return; }
+  if (!ctx || !N.rx) { draw(0); return; }
   const dt = Math.min(.1, (nowMs - lastTick) / 1000 || .016); lastTick = nowMs;
   updateMic(nowMs);
   moveDial(dt);
 
-  const now = ctx.currentTime, k = .025, noiseLvl = val('noise') / 100, purity = val('purity') / 100;
+  const noiseLvl = val('noise') / 100, purity = val('purity') / 100;
   const target = currentTarget();
-  let sMax = 0, nearD = 9, nearS = 0;
-  const stations = Object.values(st);
-  for (const s of stations) {
-    const d = x - s.f;
-    if (Math.abs(d) < Math.abs(nearD)) { nearD = d; nearS = s; }
-    // zaniki: każda stacja ma własny błądzący poziom
-    s.fadeRW = clamp(s.fadeRW + (Math.random() - .5) * dt * 1.4, 0, 1);
-    const fadeDepth = s === target ? (1 - purity) * .7 : .55;
-    let g = Math.exp(-((d / BW) ** 2)) * s.power * (1 - fadeDepth * s.fadeRW);
-    if (s.mic && !micOn) g = 0;
-    s.s = g;
-    if (g > sMax) sMax = g;
-    if (g < .0005 && s.out.gain.value < .0005) continue;
-    s.out.gain.setTargetAtTime(Math.pow(g, 1.25), now, k);
-    s.lp.frequency.setTargetAtTime(450 + 4200 * Math.pow(g, 1.6), now, k);
-    const dist = .08 + .9 * (1 - g);
-    s.wet.gain.setTargetAtTime(dist * .8, now, k);
-    s.dry.gain.setTargetAtTime(1 - .75 * dist, now, k);
+  let sMax = 0;
+  for (const s of N.list) {
+    N.freqArr[s.idx] = s.f;
+    N.ampArr[s.idx] = s.mic && !micOn ? 0 : s.power;
+    s.s = s.mic && !micOn ? 0 : strength(s);
+    if (s.s > sMax) sMax = s.s;
   }
-  // przechwytywanie FM: mocny sygnał tłumi szum, w pauzach mowy szum wraca
-  N.busAnalyser.getFloatTimeDomainData(busBuf);
-  let e = 0; for (let i = 0; i < busBuf.length; i++) e += busBuf[i] * busBuf[i];
-  duck = duck * .7 + Math.min(1, Math.sqrt(e / busBuf.length) * 6) * .3;
-  N.staticGain.gain.setTargetAtTime(noiseLvl * (.03 + .97 * Math.pow(1 - sMax, 1.7)) * (1 - .5 * duck * sMax), now, k);
-  N.hissBP.frequency.setTargetAtTime(700 + 1100 * (1.6 + Math.sin(x * 7.3) + .6 * Math.sin(x * 19.1)), now, .06);
-
-  // gwizd i brum przy sąsiedniej nośnej
-  const ad = Math.abs(nearD), np = nearS ? nearS.power : 0;
-  N.whistle.frequency.setTargetAtTime(70 + ad * 9500, now, .02);
-  N.whistleG.gain.setTargetAtTime(noiseLvl * .045 * np * Math.exp(-((ad / .32) ** 2)) * Math.pow(1 - sMax, 1.5), now, .03);
-  N.humG.gain.setTargetAtTime(noiseLvl * (.004 + .05 * np * Math.exp(-((ad / .22) ** 2)) * (1 - .8 * sMax)), now, .05);
-
-  // dryf wysokości i migotanie: losowe, bez powtarzalnego LFO
-  wobRW = clamp(wobRW + (Math.random() - .5) * dt * 3, -1, 1);
-  N.wob.delayTime.setTargetAtTime(.01 + .003 * (1 - sMax) * wobRW, now, .08);
-  const flutterAmt = 4 * sMax * (1 - sMax);   // najmocniej przy połowicznym dostrojeniu
-  N.flutter.gain.setTargetAtTime(1 - .45 * flutterAmt * Math.random(), now, .012);
-
-  // trzaski wyładowań: rzadkie, losowe serie
-  if (nowMs > crackleNext) {
-    crackleNext = nowMs + rnd(1500, 9000);
-    const b = rnd(.05, .35) * noiseLvl * (1 - .7 * sMax), len = rnd(.05, .4);
-    N.burstG.gain.setTargetAtTime(b, now, .005); N.burstG.gain.setTargetAtTime(0, now + len, .04);
-  }
+  N.rx.port.postMessage({
+    x, freq: N.freqArr, amp: N.ampArr,
+    sigma: .025 + (1 - purity) * .22,    // im mniejsza czystość, tym słabszy sygnał względem szumu
+    hiss: noiseLvl * .3,
+    impRate: .25 + noiseLvl * .9,
+  });
+  N.humG.gain.setTargetAtTime(noiseLvl * (.003 + .012 * sMax * (1 - sMax)), ctx.currentTime, .05);
 
   // stan na ekranie
   const pill = $('state'), ts = target ? target.s : 0;
@@ -696,6 +627,7 @@ async function powerOn() {
   if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   await ctx.resume();
+  await ctx.audioWorklet.addModule('/radio/fm-receiver.js');
   buildGraph(); syncOutputs(); setHand('sweep');
   $('power').hidden = true; $('liveButtons').hidden = false;
   loadSamples();
