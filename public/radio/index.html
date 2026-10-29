@@ -87,6 +87,9 @@ button { font: inherit; cursor: pointer; }
 .pad.recording { border-color: #ff4d4d; }
 
 .help { color: var(--muted); font-size: 13px; display: grid; gap: 6px; max-width: 70ch; }
+.credits summary { cursor: pointer; color: var(--cream); }
+.credits p { margin: 8px 0 0; font-size: 12px; }
+.credits a { color: var(--lavender, #F5D0FE); }
 .help kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; color: var(--cream); }
 .power { display: grid; place-items: center; gap: 10px; padding: 26px 12px; text-align: center; }
 .power p { margin: 0; color: var(--muted); max-width: 52ch; }
@@ -145,6 +148,12 @@ button { font: inherit; cursor: pointer; }
     <div>Na skali nadaje cały eter: oprócz padów grają też „obce” stacje, alfabet Morse’a i puste nośne. Gałką kręci losowa ręka, więc strojenie za każdym razem brzmi inaczej.</div>
     <div>Ostatnie pady są Wasze: <b>● nagraj</b> z mikrofonu albo <b>⇪ wgraj</b> plik audio (mp3, m4a, wav…) z komputera lub telefonu. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
+    <details class="credits">
+      <summary>Źródła nagrań</summary>
+      <p>Scenki: syntezator mowy (Google Cloud TTS, macOS). Teksty: Radio Niebawem.</p>
+      <p>Nagrania archiwalne w domenie publicznej: Tadeusz Wroński, „Uciekła mi przepióreczka” i „Idzie Maciek bez wieś” (Columbia, 1915, Internet Archive); Edison Sextette, „Tell Me Pretty Maiden” (ok. 1908); Józef Piłsudski, nagranie gramofonowe (1924); Kwartet Braci Okulskich, „Wśród nocnej ciszy” (1927); Jan Stern, „Warszawianka 1905” (1909); I. J. Paderewski, Chopin, Nokturn Fis-dur (1937); F. D. Roosevelt, Fireside Chat (1933); Gosia Leksandrówna, Mickiewicz „Romantyczność” (LibriVox). Źródło: Wikimedia Commons i Internet Archive.</p>
+      <p>Na licencji <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.pl">CC BY-SA 3.0</a>, Fundacja Nowoczesna Polska, „Czytamy słuchając” (fragmenty przycięte, ta sama licencja): Bolesław Leśmian, „Dusiołek”, czyta Agnieszka Podsiadlik, reż. Sebastian Buttny (<a href="https://commons.wikimedia.org/wiki/File:Lesmian-dusiolek.ogg">plik</a>); J. A. Morsztyn, „Niestatek”, czyta Piotr Głowacki, reż. Jakub Kowalski (<a href="https://commons.wikimedia.org/wiki/File:Niestatek-oczy-sa-ogien-czolo-jest-zwierciadlem.ogg">plik</a>).</p>
+    </details>
   </div>
 </div>
 
@@ -166,7 +175,10 @@ const PADS = [
   { id: 'porady',     t: 'Kącik porad',       s: 'Kot patrzy z wyrzutem',           f: 103.0 },
   { id: 'komunikat',  t: 'Komunikat',         s: 'Uwaga, uwaga. Nadchodzi.',        f: 104.6 },
   { id: 'melodia',    t: 'Pozytywka',         s: 'Wlazł kotek na płotek',           f: 106.2, synth: 'melody' },
-  /*SONGS*/
+  { id: 'przepioreczka', t: 'Uciekła mi przepióreczka', s: 'pieśń ludowa · płyta z 1915', f: 87.9 },
+  { id: 'maciek',     t: 'Idzie Maciek bez wieś', s: 'pieśń ludowa · płyta z 1915',   f: 93.9 },
+  { id: 'florodora',  t: 'Tell Me Pretty Maiden', s: 'Edison, ok. 1908 · obca stacja', f: 105.8 },
+  { id: 'pilsudski',  t: 'Głos z gramofonu',  s: 'Piłsudski nagrywa sam siebie, 1924', f: 100.2 },
   { id: 'user1', t: 'Wasze nagranie 1', s: 'pusto', f: 90.4, user: true },
   { id: 'user2', t: 'Wasze nagranie 2', s: 'pusto', f: 97.0, user: true },
   { id: 'user3', t: 'Wasze nagranie 3', s: 'pusto', f: 107.3, user: true },
@@ -176,7 +188,8 @@ const PADS = [
 const BACKGROUND = [
   { id: 'koncert', f: 88.4 }, { id: 'rynek', f: 92.3 }, { id: 'godzina', f: 97.7 }, { id: 'poezja', f: 102.4 },
   { id: 'morse', f: 105.4, synth: 'morse' }, { id: 'nosna1', f: 100.6, synth: 'carrier' }, { id: 'nosna2', f: 95.6, synth: 'carrier' },
-  /*BGSONGS*/
+  { id: 'koleda', f: 91.7 }, { id: 'warszawianka', f: 98.8 }, { id: 'lesmian', f: 103.6 }, { id: 'morsztyn', f: 95.1 },
+  { id: 'roosevelt', f: 107.7 }, { id: 'paderewski', f: 99.3 }, { id: 'romantycznosc', f: 101.0 }, { id: 'edison', f: 104.1 },
 ];
 const KEYS = '1234567890qwertyuiop';
 PADS.forEach((p, i) => { p.key = KEYS[i]; p.pad = true; });
