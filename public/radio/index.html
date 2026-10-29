@@ -129,18 +129,19 @@ button { font: inherit; cursor: pointer; }
       <label class="ctl" for="noise"><span class="row"><span class="label">Głośność szumu</span><output id="noiseOut"></output></span><input id="noise" type="range" min="0" max="100" value="55"></label>
       <label class="ctl" for="purity"><span class="row"><span class="label">Czystość stacji</span><output id="purityOut"></output></span><input id="purity" type="range" min="40" max="100" value="82"></label>
       <label class="ctl" for="lockTime"><span class="row"><span class="label">Czas nastrajania</span><output id="lockTimeOut"></output></span><input id="lockTime" type="range" min="2" max="40" value="10"></label>
-      <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="8"></label>
+      <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="9"></label>
     </div>
   </section>
 
   <section aria-label="Pad audycji">
-    <div class="label" style="margin-bottom:10px">Pad · klawisze 1–9, 0, Q, W</div>
+    <div class="label" style="margin-bottom:10px" id="padsLabel">Pad</div>
     <div class="pads" id="pads"></div>
   </section>
 
   <div class="help">
-    <div><kbd>1</kbd>–<kbd>0</kbd>, <kbd>Q</kbd> <kbd>W</kbd> odpalają pady, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> trzyma stację, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
-    <div>Ostatnie trzy pady są Wasze: <b>● nagraj</b> → mówicie lub śpiewacie → <b>■</b>. Nagranie zostaje w tej przeglądarce.</div>
+    <div>Klawisze pokazane na padach odpalają audycje, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> łapie najbliższą stację na skali, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
+    <div>Na skali nadaje cały eter: oprócz padów grają też „obce” stacje, alfabet Morse’a i puste nośne. Gałką kręci losowa ręka, więc strojenie za każdym razem brzmi inaczej.</div>
+    <div>Ostatnie trzy pady są Wasze: <b>● nagraj</b> → mówicie lub śpiewacie → <b>■</b>. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
   </div>
 </div>
@@ -149,38 +150,50 @@ button { font: inherit; cursor: pointer; }
 (() => {
 'use strict';
 
-/* ───────────── Pady ───────────── */
+/* ───────────── Stacje ───────────── */
+// pady: odpalane ręcznie; tło: nadają cały czas, słychać je przy przelocie igły
 const PADS = [
-  { id: 'pogoda',     key: '1', t: 'Prognoza pogody',  s: 'Na północy zachmurzenie…', f: 91.4 },
-  { id: 'wiadomosci', key: '2', t: 'Wiadomości',       s: 'Z zoo uciekł paw',          f: 94.0 },
-  { id: 'koncert',    key: '3', t: 'Koncert życzeń',   s: 'Pani Halina z Radomia',     f: 97.2 },
-  { id: 'poezja',     key: '4', t: 'Poezja',           s: 'Litwo, Ojczyzno moja!',     f: 100.6 },
-  { id: 'kotek',      key: '5', t: 'Wlazł kotek',      s: 'piosenka, mówiona',         f: 102.3 },
-  { id: 'melodia',    key: '6', t: 'Melodia',          s: 'pozytywka, Wlazł kotek',    f: 89.1, synth: true },
-  { id: 'sygnal',     key: '7', t: 'Komunikat',        s: 'Uwaga, uwaga. Nadchodzi.',  f: 105.5 },
-  { id: 'godzina',    key: '8', t: 'Sygnał czasu',     s: 'Mówi Radio Niebawem',       f: 99.0 },
-  { id: 'rynek',      key: '9', t: 'Notowania',        s: 'Kurs marzeń spadł',         f: 106.8 },
-  { id: 'user1',      key: '0', t: 'Wasze nagranie 1', s: 'pusto', f: 88.3, user: true },
-  { id: 'user2',      key: 'q', t: 'Wasze nagranie 2', s: 'pusto', f: 95.6, user: true },
-  { id: 'user3',      key: 'w', t: 'Wasze nagranie 3', s: 'pusto', f: 103.9, user: true },
+  { id: 'wywiad',     t: 'Wywiad',            s: 'Pan, który hoduje chmury',        f: 89.6 },
+  { id: 'telefon',    t: 'Telefon do radia',  s: 'Mąż nie wrócił z grzybów',        f: 91.2 },
+  { id: 'sport',      t: 'Relacja sportowa',  s: 'Gol w ostatniej minucie',         f: 93.1 },
+  { id: 'reklama',    t: 'Reklama',           s: 'Proszek Niebawem',                f: 94.7 },
+  { id: 'wiadomosci', t: 'Wiadomości',        s: 'Z zoo uciekł paw',                f: 96.4 },
+  { id: 'pogoda',     t: 'Prognoza pogody',   s: 'Przelotne opady wspomnień',       f: 98.3 },
+  { id: 'dj',         t: 'Didżej',            s: 'Nie przełączajcie się!',          f: 99.8 },
+  { id: 'bajka',      t: 'Bajka na dobranoc', s: 'Latarnik, który bał się ciemności', f: 101.5 },
+  { id: 'porady',     t: 'Kącik porad',       s: 'Kot patrzy z wyrzutem',           f: 103.0 },
+  { id: 'komunikat',  t: 'Komunikat',         s: 'Uwaga, uwaga. Nadchodzi.',        f: 104.6 },
+  { id: 'melodia',    t: 'Pozytywka',         s: 'Wlazł kotek na płotek',           f: 106.2, synth: 'melody' },
+  /*SONGS*/
+  { id: 'user1', t: 'Wasze nagranie 1', s: 'pusto', f: 90.4, user: true },
+  { id: 'user2', t: 'Wasze nagranie 2', s: 'pusto', f: 97.0, user: true },
+  { id: 'user3', t: 'Wasze nagranie 3', s: 'pusto', f: 107.3, user: true },
 ];
+const BACKGROUND = [
+  { id: 'koncert', f: 88.4 }, { id: 'rynek', f: 92.3 }, { id: 'godzina', f: 97.7 }, { id: 'poezja', f: 102.4 },
+  { id: 'morse', f: 105.4, synth: 'morse' }, { id: 'nosna1', f: 100.6, synth: 'carrier' }, { id: 'nosna2', f: 95.6, synth: 'carrier' },
+  /*BGSONGS*/
+];
+const KEYS = '1234567890qwertyuiop';
+PADS.forEach((p, i) => { p.key = KEYS[i]; p.pad = true; });
+const ALL = [...PADS, ...BACKGROUND];
 
 /* ───────────── Stan ───────────── */
 let ctx = null, N = {};
-const buffers = {};
-let t = 0;                 // 0 = pełne szukanie, 1 = idealnie nastrojone
-let dialPos = 96.0;        // MHz pokazywane na skali
-let dialTarget = 96.0, dialVel = 0;
+const st = {};             // id -> stacja (tor audio + stan)
+let x = 96.0, v = 0;       // pozycja igły (MHz) i jej prędkość
+let tuning = null;         // aktywne dostrajanie do stacji
+const hand = { mode: 'pause', until: 0, vt: 0, anchor: 0, passing: null, lingered: null };
 let micStream = null, micSrc = null, micOn = false, micActive = false, micLast = 0, micRms = 0;
-let holdActive = false;
-const playing = new Map(); // id -> {src, gain}
-let currentFreq = null, currentName = '';
-let ghostNext = 0, ghostUntil = 0;
-let rec = null;
+let holdStation = null;
+const order = [];          // kolejność odpalonych padów (ostatni wygrywa)
+let rec = null, crackleNext = 0, duck = 0, wobRW = 0;
 
 const $ = id => document.getElementById(id);
 const setOut = (id, txt) => { $(id + 'Out').textContent = txt; };
 const val = id => +$(id).value;
+const clamp = (a, lo, hi) => Math.max(lo, Math.min(hi, a));
+const rnd = (a, b) => a + Math.random() * (b - a);
 function syncOutputs() {
   setOut('thr', val('thr'));
   setOut('micGain', val('micGain') + '%');
@@ -194,7 +207,7 @@ function syncOutputs() {
 ['thr', 'micGain', 'noise', 'purity', 'lockTime', 'hang'].forEach(id => $(id).addEventListener('input', syncOutputs));
 syncOutputs();
 
-/* ───────────── Budowa toru audio ───────────── */
+/* ───────────── Materiał dźwiękowy ───────────── */
 function makeNoise(seconds, pink) {
   const len = Math.floor(ctx.sampleRate * seconds), b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
   let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
@@ -207,192 +220,203 @@ function makeNoise(seconds, pink) {
   }
   return b;
 }
-function makeCrackle(seconds) {
+function makeCrackle(seconds, density) {
   const sr = ctx.sampleRate, len = Math.floor(sr * seconds), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
-  for (let n = 0; n < seconds * 38; n++) {
-    const p = Math.floor(Math.random() * len), amp = (Math.random() ** 2) * (Math.random() < .5 ? -1 : 1), L = 20 + Math.random() * 300;
+  for (let n = 0; n < seconds * density; n++) {
+    const p = Math.floor(Math.random() * len), amp = (Math.random() ** 2) * (Math.random() < .5 ? -1 : 1), L = 20 + Math.random() * 400;
     for (let i = 0; i < L && p + i < len; i++) d[p + i] += amp * Math.exp(-i / (L / 5)) * (Math.random() * 2 - 1);
   }
   return b;
 }
-function shaperCurve(k) {
-  const n = 2048, c = new Float32Array(n);
-  for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); }
+// lampowe nasycenie: asymetryczne, daje parzyste harmoniczne zamiast cyfrowego „przesteru"
+function tubeCurve(k, bias) {
+  const n = 4096, c = new Float32Array(n), off = Math.tanh(k * bias);
+  for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (Math.tanh(k * (x + bias)) - off) / Math.tanh(k); }
   return c;
 }
-function loopSrc(buf, dest) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(); return s; }
-
-function buildGraph() {
-  const c = ctx;
-  N.master = c.createGain(); N.master.gain.value = 0.9;
-  N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -14; N.comp.ratio.value = 4; N.comp.attack.value = .004; N.comp.release.value = .2;
-  N.analyser = c.createAnalyser(); N.analyser.fftSize = 1024;
-  N.master.connect(N.comp); N.comp.connect(N.analyser); N.analyser.connect(c.destination);
-
-  // — SZUM: różowy przez wędrujący filtr (przelot po paśmie) + biały syk + trzaski
-  N.staticGain = c.createGain(); N.staticGain.connect(N.master);
-  N.hissBP = c.createBiquadFilter(); N.hissBP.type = 'bandpass'; N.hissBP.Q.value = .7; N.hissBP.frequency.value = 1800;
-  N.hissBP.connect(N.staticGain);
-  loopSrc(makeNoise(4, true), N.hissBP);
-  N.whiteHP = c.createBiquadFilter(); N.whiteHP.type = 'highpass'; N.whiteHP.frequency.value = 4000;
-  N.whiteG = c.createGain(); N.whiteG.gain.value = .12; N.whiteHP.connect(N.whiteG); N.whiteG.connect(N.staticGain);
-  loopSrc(makeNoise(3, false), N.whiteHP);
-  N.crackG = c.createGain(); N.crackG.gain.value = .5; N.crackG.connect(N.staticGain);
-  loopSrc(makeCrackle(7), N.crackG);
-
-  // — GWIZD heterodyny: ton dudnienia, który przy nastrajaniu zjeżdża do zera
-  N.whistle = c.createOscillator(); N.whistle.type = 'sine'; N.whistle.frequency.value = 1200;
-  N.whistleG = c.createGain(); N.whistleG.gain.value = 0;
-  N.whistle.connect(N.whistleG); N.whistleG.connect(N.master); N.whistle.start();
-
-  // — TOR GŁOSU: wejście (mikrofon + pady) → pasmo radiowe → chwianie → mod. pierścieniowa → przester → zaniki → bramka strojenia
-  N.input = c.createGain();
-  N.micIn = c.createGain(); N.micIn.gain.value = val('micGain') / 100; N.micIn.connect(N.input);
-  N.padIn = c.createGain(); N.padIn.gain.value = 1; N.padIn.connect(N.input);
-
-  N.hp = c.createBiquadFilter(); N.hp.type = 'highpass'; N.hp.frequency.value = 280;
-  N.lp = c.createBiquadFilter(); N.lp.type = 'lowpass'; N.lp.frequency.value = 900; N.lp.Q.value = 1.4;
-  N.peak = c.createBiquadFilter(); N.peak.type = 'peaking'; N.peak.frequency.value = 1500; N.peak.gain.value = 5; N.peak.Q.value = 1;
-  N.input.connect(N.hp); N.hp.connect(N.lp); N.lp.connect(N.peak);
-
-  // chwianie wysokości (rozstrojony odbiornik „pływa")
-  N.wobDelay = c.createDelay(.05); N.wobDelay.delayTime.value = .012;
-  N.wobLfo = c.createOscillator(); N.wobLfo.frequency.value = 5.3;
-  N.wobDepth = c.createGain(); N.wobDepth.gain.value = .003;
-  N.wobLfo.connect(N.wobDepth); N.wobDepth.connect(N.wobDelay.delayTime); N.wobLfo.start();
-  N.peak.connect(N.wobDelay);
-
-  // modulacja pierścieniowa = głos „kaczy” jak przy źle dostrojonym SSB
-  N.ringCar = c.createOscillator(); N.ringCar.frequency.value = 120;
-  N.ringVCA = c.createGain(); N.ringVCA.gain.value = 0; N.ringCar.connect(N.ringVCA.gain); N.ringCar.start();
-  N.ringWet = c.createGain(); N.ringWet.gain.value = .6;
-  N.ringDry = c.createGain(); N.ringDry.gain.value = .5;
-  N.wobDelay.connect(N.ringVCA); N.ringVCA.connect(N.ringWet);
-  N.wobDelay.connect(N.ringDry);
-  N.mix1 = c.createGain(); N.ringWet.connect(N.mix1); N.ringDry.connect(N.mix1);
-
-  // przester lampowy
-  N.shaper = c.createWaveShaper(); N.shaper.curve = shaperCurve(6); N.shaper.oversample = '2x';
-  N.distWet = c.createGain(); N.distWet.gain.value = .5;
-  N.distDry = c.createGain(); N.distDry.gain.value = .6;
-  N.mix1.connect(N.shaper); N.shaper.connect(N.distWet); N.mix1.connect(N.distDry);
-  N.mix2 = c.createGain(); N.distWet.connect(N.mix2); N.distDry.connect(N.mix2);
-
-  // zaniki (fading) — wolne LFO na głośności
-  N.fade = c.createGain(); N.fade.gain.value = 1;
-  N.fadeLfo = c.createOscillator(); N.fadeLfo.frequency.value = .9;
-  N.fadeDepth = c.createGain(); N.fadeDepth.gain.value = 0;
-  N.fadeLfo.connect(N.fadeDepth); N.fadeDepth.connect(N.fade.gain); N.fadeLfo.start();
-  N.mix2.connect(N.fade);
-
-  // bramka strojenia: ile głosu przebija się przez szum
-  N.tuneGate = c.createGain(); N.tuneGate.gain.value = 0;
-  N.fade.connect(N.tuneGate); N.tuneGate.connect(N.master);
-
-  // „duchy” innych stacji przy przelocie po skali
-  N.ghostBP = c.createBiquadFilter(); N.ghostBP.type = 'bandpass'; N.ghostBP.Q.value = 2.5; N.ghostBP.frequency.value = 1200;
-  N.ghostG = c.createGain(); N.ghostG.gain.value = 1;
-  N.ghostBP.connect(N.ghostG); N.ghostG.connect(N.master);
-
-  // analizator mikrofonu (detekcja głosu na surowym sygnale)
-  N.micAnalyser = c.createAnalyser(); N.micAnalyser.fftSize = 1024;
-}
-
-/* ───────────── Próbki ───────────── */
-async function loadSamples() {
-  await Promise.all(PADS.filter(p => !p.synth && !p.user).map(async p => {
-    try {
-      const r = await fetch('/radio/audio/' + p.id + '.m4a');
-      buffers[p.id] = await ctx.decodeAudioData(await r.arrayBuffer());
-    } catch (e) { console.warn('Nie wczytano', p.id, e); }
-  }));
-  buffers.melodia = await renderMelody();
-  for (const p of PADS.filter(p => p.user)) {
-    const blob = await idbGet(p.id);
-    if (blob) { try { buffers[p.id] = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(p.id, buffers[p.id].duration); } catch (e) {} }
-  }
-}
 async function renderMelody() {
-  // Wlazł kotek na płotek — pozytywka/harmonia, melodia ludowa
   const G = 392, E = 329.6, F = 349.2, D = 293.7, C = 261.6;
-  const line1 = [G, E, E, F, D, D, C, E, G], line2 = [G, E, E, F, D, D, C, E, C];
-  const notes = [...line1, ...line2], q = .42, sr = 22050;
-  const len = (notes.length * q + 1.5);
-  const oc = new OfflineAudioContext(1, Math.ceil(len * sr), sr);
+  const notes = [G, E, E, F, D, D, C, E, G, G, E, E, F, D, D, C, E, C], q = .42, sr = 22050;
+  const oc = new OfflineAudioContext(1, Math.ceil((notes.length * q + 2) * sr), sr);
   const out = oc.createGain(); out.gain.value = .45; out.connect(oc.destination);
   notes.forEach((f, i) => {
-    const t0 = i * q, last = i === 8 || i === 17, dur = last ? q * 2 : q * .95;
-    const at = i >= 9 ? t0 + q : t0; // pauza między frazami
+    const last = i === 8 || i === 17, dur = last ? q * 2 : q * .95, at = i * q + (i >= 9 ? q : 0);
     [1, 2, 3].forEach((h, hi) => {
-      const o = oc.createOscillator(); o.type = hi === 0 ? 'triangle' : 'sine'; o.frequency.value = f * h;
-      const g = oc.createGain(); const a = [.6, .25, .12][hi];
+      const o = oc.createOscillator(); o.type = hi ? 'sine' : 'triangle'; o.frequency.value = f * h;
+      const g = oc.createGain(), a = [.6, .25, .12][hi];
       g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(a, at + .015); g.gain.exponentialRampToValueAtTime(a * .25, at + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
       o.connect(g); g.connect(out); o.start(at); o.stop(at + dur + .05);
     });
   });
   return oc.startRendering();
 }
+async function renderMorse() {
+  const M = { C: '-.-.', Q: '--.-', D: '-..', E: '.', S: '...', P: '.--.', '5': '.....', N: '-.', B: '-...', W: '.--', K: '-.-' };
+  const msg = 'CQ CQ DE SP5NBW SP5NBW K', u = .075, sr = 22050, seq = [];
+  for (const ch of msg) {
+    if (ch === ' ') { seq.push([0, 4 * u]); continue; }
+    for (const s of M[ch]) { seq.push([1, s === '.' ? u : 3 * u]); seq.push([0, u]); }
+    seq.push([0, 2 * u]);
+  }
+  const total = seq.reduce((a, s) => a + s[1], 0) + 2.5;
+  const oc = new OfflineAudioContext(1, Math.ceil(total * sr), sr);
+  const o = oc.createOscillator(); o.frequency.value = 640; const g = oc.createGain(); g.gain.value = 0;
+  o.connect(g); g.connect(oc.destination); o.start();
+  let tt = .2; for (const [on, d] of seq) { if (on) { g.gain.setTargetAtTime(.5, tt, .004); g.gain.setTargetAtTime(0, tt + d, .004); } tt += d; }
+  return oc.startRendering();
+}
+function renderCarrier() {
+  // pusta nośna: cisza z lekkim brumem — przy dostrojeniu szum znika, zostaje „głucha" stacja
+  const sr = ctx.sampleRate, b = ctx.createBuffer(1, sr * 3, sr), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) { const tt = i / sr; d[i] = .02 * Math.sin(2 * Math.PI * 100 * tt) + .008 * Math.sin(2 * Math.PI * 150 * tt) + (Math.random() - .5) * .004; }
+  return b;
+}
 
-/* ───────────── Pady: odtwarzanie ───────────── */
+/* ───────────── Tor audio ───────────── */
+function buildGraph() {
+  const c = ctx;
+  N.master = c.createGain(); N.master.gain.value = .95;
+  N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -16; N.comp.ratio.value = 3.5; N.comp.attack.value = .005; N.comp.release.value = .25;
+  N.analyser = c.createAnalyser(); N.analyser.fftSize = 1024;
+  N.master.connect(N.comp); N.comp.connect(N.analyser); N.analyser.connect(c.destination);
+
+  // głośnik starego odbiornika: wąskie pasmo, nosowy rezonans obudowy
+  N.spk = c.createBiquadFilter(); N.spk.type = 'highpass'; N.spk.frequency.value = 160; N.spk.Q.value = .8;
+  const pk1 = c.createBiquadFilter(); pk1.type = 'peaking'; pk1.frequency.value = 1050; pk1.gain.value = 4.5; pk1.Q.value = .9;
+  const pk2 = c.createBiquadFilter(); pk2.type = 'peaking'; pk2.frequency.value = 2900; pk2.gain.value = 2; pk2.Q.value = 1.4;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4800; lp.Q.value = .6;
+  N.spk.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(N.master);
+
+  // odebrane stacje → dryf wysokości → migotanie (wielodrogowość) → lampa → głośnik
+  N.bus = c.createGain();
+  N.wob = c.createDelay(.05); N.wob.delayTime.value = .01;
+  N.flutter = c.createGain();
+  N.tube = c.createWaveShaper(); N.tube.curve = tubeCurve(1.8, .12); N.tube.oversample = '4x';
+  N.bus.connect(N.wob); N.wob.connect(N.flutter); N.flutter.connect(N.tube); N.tube.connect(N.spk);
+  N.busAnalyser = c.createAnalyser(); N.busAnalyser.fftSize = 512; N.bus.connect(N.busAnalyser);
+
+  // szum między stacjami: różowy przez wędrujący filtr + syk + trzaski
+  N.staticGain = c.createGain(); N.staticGain.gain.value = 0; N.staticGain.connect(N.spk);
+  N.hissBP = c.createBiquadFilter(); N.hissBP.type = 'bandpass'; N.hissBP.Q.value = .6; N.hissBP.frequency.value = 1500; N.hissBP.connect(N.staticGain);
+  loop(makeNoise(5, true), N.hissBP);
+  const wh = c.createBiquadFilter(); wh.type = 'highpass'; wh.frequency.value = 3500;
+  const whg = c.createGain(); whg.gain.value = .14; wh.connect(whg); whg.connect(N.staticGain);
+  loop(makeNoise(3.7, false), wh);
+  N.crackG = c.createGain(); N.crackG.gain.value = .35; N.crackG.connect(N.staticGain);
+  loop(makeCrackle(11, 30), N.crackG);
+  N.burstG = c.createGain(); N.burstG.gain.value = 0; N.burstG.connect(N.spk);
+  loop(makeCrackle(6.3, 260), N.burstG);
+
+  // gwizd dudnienia przy sąsiedniej nośnej
+  N.whistle = c.createOscillator(); N.whistle.frequency.value = 1500;
+  N.whistleG = c.createGain(); N.whistleG.gain.value = 0;
+  N.whistle.connect(N.whistleG); N.whistleG.connect(N.spk); N.whistle.start();
+
+  // przydźwięk sieci 50 Hz z harmonicznymi, mocniejszy przy nośnej
+  N.hum = c.createOscillator(); N.hum.type = 'sawtooth'; N.hum.frequency.value = 50;
+  const humLp = c.createBiquadFilter(); humLp.type = 'lowpass'; humLp.frequency.value = 380;
+  N.humG = c.createGain(); N.humG.gain.value = 0;
+  N.hum.connect(humLp); humLp.connect(N.humG); N.humG.connect(N.master); N.hum.start();
+
+  N.micIn = c.createGain(); N.micIn.gain.value = val('micGain') / 100;
+  N.micAnalyser = c.createAnalyser(); N.micAnalyser.fftSize = 1024;
+
+  for (const def of ALL) makeStation(def);
+  makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
+  N.micIn.connect(st.mic.in);
+}
+function loop(buf, dest, offset = 0) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(dest); s.start(0, offset); return s; }
+function freeFreq() {
+  let best = 98, bestD = 0;
+  for (let i = 0; i < 300; i++) {
+    const f = rnd(88.2, 107.6), d = Math.min(...ALL.map(a => Math.abs(a.f - f)));
+    if (d > bestD) { bestD = d; best = f; }
+  }
+  return +best.toFixed(1);
+}
+function makeStation(def) {
+  const c = ctx, s = { ...def, buf: null, src: null, playing: false, s: 0, fadeRW: Math.random(), power: def.pad || def.mic ? 1 : rnd(.45, .9) };
+  s.in = c.createGain();
+  s.lp = c.createBiquadFilter(); s.lp.type = 'lowpass'; s.lp.Q.value = 1.1; s.lp.frequency.value = 800;
+  s.sh = c.createWaveShaper(); s.sh.curve = tubeCurve(5 + Math.random() * 4, .2 + Math.random() * .2);
+  s.wet = c.createGain(); s.dry = c.createGain(); s.out = c.createGain(); s.out.gain.value = 0;
+  s.in.connect(s.lp); s.lp.connect(s.dry); s.lp.connect(s.sh); s.sh.connect(s.wet);
+  s.dry.connect(s.out); s.wet.connect(s.out); s.out.connect(N.bus);
+  st[def.id] = s;
+}
+function startLoop(s) {
+  if (!s.buf || s.mic) return;
+  if (s.src) { try { s.src.stop(); } catch (e) {} }
+  s.src = ctx.createBufferSource(); s.src.buffer = s.buf; s.src.loop = true;
+  s.src.connect(s.in); s.src.start(0, Math.random() * s.buf.duration); s.playing = false;
+}
+
+async function loadSamples() {
+  await Promise.all(ALL.filter(a => !a.synth && !a.user).map(async a => {
+    try { const r = await fetch('/radio/audio/' + a.id + '.m4a'); st[a.id].buf = await ctx.decodeAudioData(await r.arrayBuffer()); startLoop(st[a.id]); }
+    catch (e) { console.warn('Nie wczytano', a.id, e); }
+  }));
+  st.melodia.buf = await renderMelody(); startLoop(st.melodia);
+  const morse = await renderMorse(); st.morse.buf = morse; startLoop(st.morse);
+  for (const a of ALL.filter(a => a.synth === 'carrier')) { st[a.id].buf = renderCarrier(); startLoop(st[a.id]); }
+  for (const p of PADS.filter(p => p.user)) {
+    const blob = await idbGet(p.id);
+    if (blob) { try { st[p.id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(p.id); startLoop(st[p.id]); } catch (e) {} }
+  }
+}
+
+/* ───────────── Pady ───────────── */
 function playPad(id) {
   if (!ctx) return;
-  if (playing.has(id)) { stopPad(id); return; }
-  const buf = buffers[id]; if (!buf) return;
-  const p = PADS.find(x => x.id === id);
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const g = ctx.createGain(); g.gain.value = 1;
-  src.connect(g); g.connect(N.padIn);
-  src.start(ctx.currentTime + .05);
-  src.onended = () => { if (playing.get(id)?.src === src) { playing.delete(id); padEl(id).classList.remove('playing'); } };
-  playing.set(id, { src, gain: g });
-  padEl(id).classList.add('playing');
-  tuneTo(p.f, p.t);
+  const s = st[id]; if (!s || !s.buf) return;
+  if (s.playing) { stopPad(id); return; }
+  if (s.src) { try { s.src.stop(); } catch (e) {} }
+  const src = ctx.createBufferSource(); src.buffer = s.buf; src.connect(s.in); src.start(ctx.currentTime + .03);
+  s.src = src; s.playing = true;
+  src.onended = () => { if (s.src === src) endPad(id); };
+  order.push(id); padEl(id).classList.add('playing');
+}
+function endPad(id) {
+  const s = st[id]; s.playing = false;
+  const i = order.indexOf(id); if (i >= 0) order.splice(i, 1);
+  padEl(id).classList.remove('playing');
+  // stacja wraca do nadawania w tle po chwili ciszy w eterze
+  setTimeout(() => { if (ctx && !s.playing) startLoop(s); }, rnd(1500, 4000));
 }
 function stopPad(id) {
-  const pl = playing.get(id); if (!pl) return;
-  pl.gain.gain.setTargetAtTime(0, ctx.currentTime, .05);
-  try { pl.src.stop(ctx.currentTime + .25); } catch (e) {}
-  playing.delete(id); padEl(id).classList.remove('playing');
+  const s = st[id]; if (!s.playing) return;
+  const src = s.src; s.src = null;
+  try { src.stop(ctx.currentTime + .05); } catch (e) {}
+  endPad(id);
 }
-function stopAll() { [...playing.keys()].forEach(stopPad); holdActive = false; $('holdBtn').classList.remove('active'); }
-function tuneTo(freq, name) { currentFreq = freq; currentName = name; dialTarget = freq; }
+function stopAll() { [...order].forEach(stopPad); holdStation = null; $('holdBtn').classList.remove('active'); }
 
 /* ───────────── Mikrofon ───────────── */
 async function ensureMic() {
   if (micStream) return true;
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
-  } catch (e) { $('station').textContent = 'Brak dostępu do mikrofonu: ' + e.message; return false; }
-  micSrc = ctx.createMediaStreamSource(micStream);
-  micSrc.connect(N.micAnalyser);
+  try { micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } }); }
+  catch (e) { $('station').textContent = 'Brak dostępu do mikrofonu: ' + e.message; return false; }
+  micSrc = ctx.createMediaStreamSource(micStream); micSrc.connect(N.micAnalyser);
   return true;
 }
 async function toggleMic() {
   if (!ctx) return;
-  if (!micOn) {
-    if (!(await ensureMic())) return;
-    micSrc.connect(N.micIn); micOn = true;
-  } else {
-    try { micSrc.disconnect(N.micIn); } catch (e) {}
-    micOn = false; micActive = false;
-  }
+  if (!micOn) { if (!(await ensureMic())) return; micSrc.connect(N.micIn); micOn = true; }
+  else { try { micSrc.disconnect(N.micIn); } catch (e) {} micOn = false; micActive = false; }
   $('micBtn').classList.toggle('active', micOn);
 }
 const micBuf = new Float32Array(1024);
-function updateMic(now) {
+function updateMic(nowMs) {
   if (!micSrc) { micRms = 0; return; }
   N.micAnalyser.getFloatTimeDomainData(micBuf);
   let s = 0; for (let i = 0; i < micBuf.length; i++) s += micBuf[i] * micBuf[i];
-  const rms = Math.sqrt(s / micBuf.length) * 400; // ~0–100
-  micRms = micRms * .6 + rms * .4;
+  micRms = micRms * .6 + Math.sqrt(s / micBuf.length) * 400 * .4;
   $('micLevel').style.width = Math.min(100, micRms / 60 * 100) + '%';
   if (!micOn) return;
   if (micRms > val('thr')) {
-    if (!micActive) tuneTo(+(88 + Math.random() * 19.5).toFixed(1), 'NA ŻYWO');
-    micActive = true; micLast = now;
-  } else if (micActive && now - micLast > val('hang') * 100) {
-    micActive = false;
-  }
+    if (!micActive) st.mic.f = freeFreq();   // każda wypowiedź to inna stacja
+    micActive = true; micLast = nowMs;
+  } else if (micActive && nowMs - micLast > val('hang') * 100) micActive = false;
 }
 
 /* ───────────── Nagrywanie własnych padów ───────────── */
@@ -401,158 +425,194 @@ async function toggleRecord(id) {
   if (rec && rec.id === id) { rec.mr.stop(); return; }
   if (rec) return;
   if (!(await ensureMic())) return;
-  const mr = new MediaRecorder(micStream); const chunks = [];
+  const mr = new MediaRecorder(micStream), chunks = [];
   mr.ondataavailable = e => e.data.size && chunks.push(e.data);
   mr.onstop = async () => {
     const blob = new Blob(chunks, { type: mr.mimeType });
     padEl(id).classList.remove('recording'); recBtn(id).classList.remove('recording'); recBtn(id).textContent = '● nagraj';
     rec = null;
-    try { buffers[id] = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(id, buffers[id].duration); idbSet(id, blob); }
+    try { st[id].buf = await ctx.decodeAudioData(await blob.arrayBuffer()); markUser(id); startLoop(st[id]); idbSet(id, blob); }
     catch (e) { $('station').textContent = 'Nie udało się odczytać nagrania.'; }
   };
   rec = { id, mr }; mr.start();
   padEl(id).classList.add('recording'); recBtn(id).classList.add('recording'); recBtn(id).textContent = '■ stop';
 }
-function markUser(id, dur) {
-  const el = padEl(id); el.classList.remove('empty');
-  el.querySelector('.s').textContent = 'nagranie · ' + dur.toFixed(1) + ' s';
-}
-
-/* IndexedDB: nagrania zostają w tej przeglądarce */
+function markUser(id) { const el = padEl(id); el.classList.remove('empty'); el.querySelector('.s').textContent = 'nagranie · ' + st[id].buf.duration.toFixed(1) + ' s'; }
 function idb() { return new Promise((res, rej) => { try { const r = indexedDB.open('radio-niebawem', 1); r.onupgradeneeded = () => r.result.createObjectStore('rec'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
 async function idbGet(k) { try { const d = await idb(); return await new Promise(res => { const q = d.transaction('rec').objectStore('rec').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
 async function idbSet(k, v) { try { const d = await idb(); d.transaction('rec', 'readwrite').objectStore('rec').put(v, k); } catch (e) {} }
 
-/* ───────────── Silnik strojenia (tick ~60 Hz) ───────────── */
-let lastTick = 0, wobPhase = 0;
+/* ───────────── Ręka na gałce ───────────── */
+function currentTarget() {
+  if (micActive) return st.mic;
+  if (order.length) return st[order[order.length - 1]];
+  return holdStation;
+}
+function newTuning(target) {
+  const lockT = val('lockTime') / 10, purity = val('purity') / 100;
+  const side = Math.random() < .5 ? -1 : 1;
+  return {
+    st: target, age: 0,
+    omega: rnd(4, 6.5) / lockT, zeta: rnd(.28, .6),        // każde strojenie ma inną „rękę"
+    resid: side * (1 - purity) * rnd(.15, .4),             // nigdy nie trafia idealnie
+    detour: Math.random() < .45 ? side * rnd(.18, .5) : 0,  // czasem przekręca za daleko
+    detourT: rnd(.2, .4) * lockT,
+  };
+}
+function moveDial(dt) {
+  const target = currentTarget();
+  const purity = val('purity') / 100;
+  if (target) {
+    if (!tuning || tuning.st !== target) tuning = newTuning(target);
+    tuning.age += dt;
+    const lim = (1 - purity) * .45 + .006;
+    tuning.resid = clamp(tuning.resid + (Math.random() - .5) * dt * .05, -lim, lim);
+    const goal = target.f + tuning.resid + (tuning.age < tuning.detourT ? tuning.detour : 0);
+    const { omega: w, zeta: z } = tuning;
+    v += (w * w * (goal - x) - 2 * z * w * v) * dt + (Math.random() - .5) * .25 * dt;
+  } else {
+    if (tuning) { tuning = null; setHand('sweep'); }
+    scanHand(dt);
+  }
+  x += v * dt;
+  if (x < 87.6) { x = 87.6; v = Math.abs(v) * .3; hand.vt = Math.abs(hand.vt); }
+  if (x > 107.9) { x = 107.9; v = -Math.abs(v) * .3; hand.vt = -Math.abs(hand.vt); }
+}
+function setHand(mode) {
+  const now = performance.now() / 1000; hand.mode = mode;
+  if (mode === 'sweep') { const dir = hand.vt ? Math.sign(hand.vt) * (Math.random() < .7 ? 1 : -1) : (Math.random() < .5 ? -1 : 1); hand.vt = dir * (Math.random() < .25 ? rnd(2.5, 6) : rnd(.3, 2)); hand.until = now + rnd(.4, 2.2); }
+  if (mode === 'pause') hand.until = now + rnd(.3, 1.6);
+  if (mode === 'fine') { hand.until = now + rnd(.6, 1.8); hand.flip = 0; }
+  if (mode === 'linger') hand.until = now + rnd(.9, 3.2);
+}
+function scanHand(dt) {
+  const now = performance.now() / 1000;
+  if (now > hand.until) { const r = Math.random(); setHand(r < .5 ? 'sweep' : r < .72 ? 'pause' : 'fine'); }
+  if (hand.mode === 'sweep') {
+    v += (hand.vt - v) * Math.min(1, dt * 3);
+    // przelot obok stacji: czasem ręka się zatrzymuje i słucha
+    const near = ALL.concat([st.mic]).find(a => Math.abs(a.f - x) < .1);
+    if (near && hand.passing !== near.id) {
+      hand.passing = near.id;
+      if (hand.lingered !== near.id && Math.random() < .4) { hand.lingered = near.id; hand.anchor = near.f + rnd(-.07, .07); setHand('linger'); }
+    }
+    if (!near) hand.passing = null;
+  } else if (hand.mode === 'pause') {
+    v += (0 - v) * Math.min(1, dt * 7);
+  } else if (hand.mode === 'fine') {
+    if (now > hand.flip) { hand.flip = now + rnd(.12, .4); hand.vt = (Math.random() < .5 ? -1 : 1) * rnd(.04, .25); }
+    v += (hand.vt - v) * Math.min(1, dt * 6);
+  } else if (hand.mode === 'linger') {
+    hand.anchor += (Math.random() - .5) * dt * .04;
+    v += (36 * (hand.anchor - x) - 2 * .7 * 6 * v) * dt;
+  }
+}
+
+/* ───────────── Odbiornik (tick ~60 Hz) ───────────── */
+const BW = .11;   // szerokość „łapania" stacji w MHz
+const busBuf = new Float32Array(512);
+let lastTick = 0;
 function tick(nowMs) {
   requestAnimationFrame(tick);
-  if (!ctx) { draw(); return; }
+  if (!ctx) { draw(0); return; }
   const dt = Math.min(.1, (nowMs - lastTick) / 1000 || .016); lastTick = nowMs;
   updateMic(nowMs);
+  moveDial(dt);
 
-  const active = playing.size > 0 || micActive || holdActive;
-  const purity = val('purity') / 100;
-  const lockT = val('lockTime') / 10;
-  const target = active ? purity : 0;
-
-  // dojście do stacji: szybciej w górę z lekkim „przestrzeleniem”, wolniej w dół
-  const rate = active ? (3 / lockT) : 1.6;
-  t += (target - t) * Math.min(1, rate * dt);
-  // drżenie strojenia, słabnie przy stabilnym odbiorze
-  wobPhase += dt;
-  const jitter = (Math.sin(wobPhase * 7.1) * .5 + Math.sin(wobPhase * 2.3) * .5) * .06 * (1 - t) * (active ? 1 : .3);
-  const tt = Math.max(0, Math.min(1, t + jitter));
-  const d = 1 - tt;                        // rozstrojenie
-  const now = ctx.currentTime, k = .03;
-
-  // skala: przy szukaniu igła błądzi, przy odbiorze jedzie do stacji
-  if (active && currentFreq) {
-    dialPos += (currentFreq - dialPos) * Math.min(1, dt * 4 / lockT) + (Math.random() - .5) * .06 * d;
-  } else {
-    if (Math.random() < dt * .7) dialTarget = 87.5 + Math.random() * 20.5;
-    dialVel += (dialTarget - dialPos) * dt * .6; dialVel *= Math.pow(.2, dt);
-    dialPos += dialVel * dt;
+  const now = ctx.currentTime, k = .025, noiseLvl = val('noise') / 100, purity = val('purity') / 100;
+  const target = currentTarget();
+  let sMax = 0, nearD = 9, nearS = 0;
+  const stations = Object.values(st);
+  for (const s of stations) {
+    const d = x - s.f;
+    if (Math.abs(d) < Math.abs(nearD)) { nearD = d; nearS = s; }
+    // zaniki: każda stacja ma własny błądzący poziom
+    s.fadeRW = clamp(s.fadeRW + (Math.random() - .5) * dt * 1.4, 0, 1);
+    const fadeDepth = s === target ? (1 - purity) * .7 : .55;
+    let g = Math.exp(-((d / BW) ** 2)) * s.power * (1 - fadeDepth * s.fadeRW);
+    if (s.mic && !micOn) g = 0;
+    s.s = g;
+    if (g > sMax) sMax = g;
+    if (g < .0005 && s.out.gain.value < .0005) continue;
+    s.out.gain.setTargetAtTime(Math.pow(g, 1.25), now, k);
+    s.lp.frequency.setTargetAtTime(450 + 4200 * Math.pow(g, 1.6), now, k);
+    const dist = .08 + .9 * (1 - g);
+    s.wet.gain.setTargetAtTime(dist * .8, now, k);
+    s.dry.gain.setTargetAtTime(1 - .75 * dist, now, k);
   }
-  dialPos = Math.max(87.5, Math.min(108, dialPos));
+  // przechwytywanie FM: mocny sygnał tłumi szum, w pauzach mowy szum wraca
+  N.busAnalyser.getFloatTimeDomainData(busBuf);
+  let e = 0; for (let i = 0; i < busBuf.length; i++) e += busBuf[i] * busBuf[i];
+  duck = duck * .7 + Math.min(1, Math.sqrt(e / busBuf.length) * 6) * .3;
+  N.staticGain.gain.setTargetAtTime(noiseLvl * (.03 + .97 * Math.pow(1 - sMax, 1.7)) * (1 - .5 * duck * sMax), now, k);
+  N.hissBP.frequency.setTargetAtTime(700 + 1100 * (1.6 + Math.sin(x * 7.3) + .6 * Math.sin(x * 19.1)), now, .06);
 
-  // szum
-  const noiseLvl = val('noise') / 100;
-  N.staticGain.gain.setTargetAtTime(noiseLvl * (.06 + .94 * Math.pow(d, 1.4)), now, k);
-  N.hissBP.frequency.setTargetAtTime(900 + 1600 * (.5 + .5 * Math.sin(dialPos * 3.1)) + 600 * d * Math.random(), now, .08);
+  // gwizd i brum przy sąsiedniej nośnej
+  const ad = Math.abs(nearD), np = nearS ? nearS.power : 0;
+  N.whistle.frequency.setTargetAtTime(70 + ad * 9500, now, .02);
+  N.whistleG.gain.setTargetAtTime(noiseLvl * .045 * np * Math.exp(-((ad / .32) ** 2)) * Math.pow(1 - sMax, 1.5), now, .03);
+  N.humG.gain.setTargetAtTime(noiseLvl * (.004 + .05 * np * Math.exp(-((ad / .22) ** 2)) * (1 - .8 * sMax)), now, .05);
 
-  // gwizd: wysoki przy dalekim rozstrojeniu, zjeżdża do zera przy nastrojeniu
-  const whistleF = 60 + 2600 * d * d + 400 * Math.abs(Math.sin(dialPos * 5.7)) * d;
-  if (now > ghostUntil) N.whistle.frequency.setTargetAtTime(whistleF, now, .05);
-  const whistleAmt = active ? .1 * Math.sin(Math.PI * Math.min(1, tt / Math.max(.4, purity))) * d * 1.6 : .018 * (.5 + .5 * Math.sin(dialPos * 9));
-  N.whistleG.gain.setTargetAtTime(Math.max(0, whistleAmt) * noiseLvl * 1.6, now, .04);
+  // dryf wysokości i migotanie: losowe, bez powtarzalnego LFO
+  wobRW = clamp(wobRW + (Math.random() - .5) * dt * 3, -1, 1);
+  N.wob.delayTime.setTargetAtTime(.01 + .003 * (1 - sMax) * wobRW, now, .08);
+  const flutterAmt = 4 * sMax * (1 - sMax);   // najmocniej przy połowicznym dostrojeniu
+  N.flutter.gain.setTargetAtTime(1 - .45 * flutterAmt * Math.random(), now, .012);
 
-  // głos
-  N.tuneGate.gain.setTargetAtTime(Math.pow(tt, 1.5) * 1.1, now, k);
-  N.lp.frequency.setTargetAtTime(650 + 3200 * Math.pow(tt, 1.3), now, k);
-  N.wobDepth.gain.setTargetAtTime(.0004 + .0045 * d, now, k);
-  N.wobLfo.frequency.setTargetAtTime(3 + 4 * d, now, .2);
-  N.ringCar.frequency.setTargetAtTime(8 + 220 * d, now, k);
-  const ring = Math.min(1, d * 1.5);
-  N.ringWet.gain.setTargetAtTime(.9 * ring, now, k);
-  N.ringDry.gain.setTargetAtTime(1 - .75 * ring, now, k);
-  const dist = .18 + .7 * d;
-  N.distWet.gain.setTargetAtTime(dist, now, k);
-  N.distDry.gain.setTargetAtTime(1 - dist * .7, now, k);
-  N.fadeDepth.gain.setTargetAtTime(.55 * d, now, .1);
-  N.fade.gain.setTargetAtTime(1 - .3 * d, now, .1);
-
-  // duchy innych stacji — tylko gdy nic nie odbieramy
-  if (!active && t < .15 && nowMs > ghostNext) {
-    ghostNext = nowMs + 1400 + Math.random() * 3800;
-    spawnGhost(noiseLvl);
+  // trzaski wyładowań: rzadkie, losowe serie
+  if (nowMs > crackleNext) {
+    crackleNext = nowMs + rnd(1500, 9000);
+    const b = rnd(.05, .35) * noiseLvl * (1 - .7 * sMax), len = rnd(.05, .4);
+    N.burstG.gain.setTargetAtTime(b, now, .005); N.burstG.gain.setTargetAtTime(0, now + len, .04);
   }
 
   // stan na ekranie
-  const st = $('state');
-  if (active && tt > purity - .08) { st.textContent = 'NASTROJONE'; st.className = 'pill on'; }
-  else if (active) { st.textContent = 'ŁAPIĘ STACJĘ…'; st.className = 'pill tuning'; }
-  else { st.textContent = micOn ? 'SZUKAM · MIKROFON NASŁUCHUJE' : 'SZUKAM…'; st.className = micOn ? 'pill mic' : 'pill'; }
-  $('station').textContent = active && currentName
-    ? currentName + ' · ' + dialPos.toFixed(1).replace('.', ',') + ' MHz'
-    : dialPos.toFixed(1).replace('.', ',') + ' MHz';
-  draw(tt);
-}
-
-function spawnGhost(noiseLvl) {
-  const ids = Object.keys(buffers).filter(k => buffers[k]); if (!ids.length) return;
-  const buf = buffers[ids[Math.floor(Math.random() * ids.length)]];
-  const dur = .25 + Math.random() * .7, off = Math.random() * Math.max(0, buf.duration - dur);
-  const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = .8 + Math.random() * .5;
-  const g = ctx.createGain(), now = ctx.currentTime, peak = .22 * noiseLvl;
-  g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(peak, now + dur * .4); g.gain.linearRampToValueAtTime(0, now + dur);
-  N.ghostBP.frequency.setValueAtTime(700 + Math.random() * 1600, now);
-  s.connect(g); g.connect(N.ghostBP); s.start(now, off, dur + .05);
-  // krótki świst przelotu
-  ghostUntil = now + dur;
-  N.whistle.frequency.cancelScheduledValues(now);
-  N.whistle.frequency.setValueAtTime(2400, now); N.whistle.frequency.exponentialRampToValueAtTime(80, now + dur * .5); N.whistle.frequency.exponentialRampToValueAtTime(2000, now + dur);
+  const pill = $('state'), ts = target ? target.s : 0;
+  if (target && ts > .6) { pill.textContent = 'NASTROJONE'; pill.className = 'pill on'; }
+  else if (target) { pill.textContent = 'ŁAPIĘ STACJĘ…'; pill.className = 'pill tuning'; }
+  else { pill.textContent = micOn ? 'SZUKAM · MIKROFON NASŁUCHUJE' : 'SZUKAM…'; pill.className = micOn ? 'pill mic' : 'pill'; }
+  const mhz = x.toFixed(1).replace('.', ',') + ' MHz';
+  $('station').textContent = target && target.t ? target.t + ' · ' + mhz : mhz;
+  draw(target ? ts : sMax * .6);
 }
 
 /* ───────────── Rysowanie: skala, magiczne oko, oscyloskop ───────────── */
 const dial = $('dial'), eye = $('eye'), scope = $('scope');
 function fit(cv) { const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1; if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); } return dpr; }
 const scopeBuf = new Uint8Array(1024);
-function draw(tt = 0) {
-  // skala
+function draw(tt) {
   let dpr = fit(dial); let g = dial.getContext('2d'); const W = dial.width, H = dial.height;
   const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, '#2a1b0c'); grd.addColorStop(1, '#130c06');
   g.fillStyle = grd; g.fillRect(0, 0, W, H);
   const glow = ctx ? .55 + .45 * tt : .25;
   g.fillStyle = `rgba(245,184,90,${.08 * glow})`; g.fillRect(0, 0, W, H);
-  const pad = 22 * dpr, x = f => pad + (f - 87.5) / 20.5 * (W - 2 * pad);
-  g.strokeStyle = `rgba(245,184,90,${.5 + .4 * glow})`; g.fillStyle = g.strokeStyle; g.lineWidth = 1 * dpr;
+  const pad = 22 * dpr, X = f => pad + (f - 87.5) / 20.5 * (W - 2 * pad);
+  g.strokeStyle = `rgba(245,184,90,${.5 + .4 * glow})`; g.fillStyle = g.strokeStyle; g.lineWidth = dpr;
   g.font = `${11 * dpr}px "Fira Code", monospace`; g.textAlign = 'center';
   for (let f = 88; f <= 108; f += .5) {
-    const big = f % 2 === 0, X = x(f);
-    g.beginPath(); g.moveTo(X, H * .52); g.lineTo(X, H * (big ? .30 : .42)); g.stroke();
-    if (big) g.fillText(f.toString(), X, H * .22);
+    const big = f % 2 === 0, px = X(f);
+    g.beginPath(); g.moveTo(px, H * .52); g.lineTo(px, H * (big ? .30 : .42)); g.stroke();
+    if (big) g.fillText(String(f), px, H * .22);
   }
   g.font = `${9 * dpr}px "Fira Code", monospace`; g.textAlign = 'left'; g.fillText('MHz', 4 * dpr, H * .22);
-  // stacje
-  PADS.forEach(p => {
-    const X = x(p.f);
-    g.fillStyle = buffers[p.id] ? 'rgba(217,70,239,.85)' : 'rgba(217,70,239,.25)';
-    g.fillRect(X - 1.5 * dpr, H * .6, 3 * dpr, H * .1);
-  });
+  for (const a of ALL) {
+    const s = st[a.id], live = s && s.buf;
+    g.fillStyle = a.pad ? (live ? 'rgba(217,70,239,.9)' : 'rgba(217,70,239,.25)') : 'rgba(245,184,90,.45)';
+    g.fillRect(X(a.f) - 1.5 * dpr, H * .6, 3 * dpr, H * (a.pad ? .1 : .06));
+  }
+  if (micOn && st.mic) { g.fillStyle = '#A4C639'; g.fillRect(X(st.mic.f) - 1.5 * dpr, H * .6, 3 * dpr, H * .1); }
   g.fillStyle = 'rgba(253,244,255,.55)'; g.font = `${10 * dpr}px "Sora", sans-serif`; g.textAlign = 'center';
-  ['Warszawa', 'Radom', 'Wilno', 'Lwów', 'Ciechanów', 'Niebawem'].forEach((n, i) => g.fillText(n, x(89 + i * 3.7), H * .88));
-  // igła
-  const NX = x(dialPos);
+  ['Warszawa', 'Radom', 'Wilno', 'Lwów', 'Ciechanów', 'Niebawem'].forEach((n, i) => g.fillText(n, X(89 + i * 3.7), H * .88));
+  const NX = X(x);
   g.strokeStyle = '#ff5a3c'; g.lineWidth = 2.5 * dpr; g.shadowColor = '#ff5a3c'; g.shadowBlur = 8 * dpr * glow;
   g.beginPath(); g.moveTo(NX, 4 * dpr); g.lineTo(NX, H - 4 * dpr); g.stroke(); g.shadowBlur = 0;
 
-  // magiczne oko (lampa EM84 / 6E5): zielony wachlarz zamyka się przy nastrojeniu
+  // magiczne oko (lampa EM84 / 6E5): zielony wachlarz zamyka się przy mocnym sygnale
   dpr = fit(eye); g = eye.getContext('2d'); const S = eye.width, R = S / 2;
   g.clearRect(0, 0, S, S);
   g.fillStyle = '#0d120b'; g.beginPath(); g.arc(R, R, R * .96, 0, Math.PI * 2); g.fill();
   if (ctx) {
-    const shadow = (1 - tt) * Math.PI * .9 + .08;  // ciemny klin
+    const shadow = (1 - tt) * Math.PI * .9 + .08;
     const rg = g.createRadialGradient(R, R, R * .2, R, R, R * .9);
     rg.addColorStop(0, `rgba(124,255,107,${.35 + .5 * tt})`); rg.addColorStop(1, `rgba(60,180,60,${.25 + .5 * tt})`);
     g.fillStyle = rg; g.beginPath(); g.moveTo(R, R);
@@ -561,19 +621,19 @@ function draw(tt = 0) {
   g.fillStyle = '#050505'; g.beginPath(); g.arc(R, R, R * .28, 0, Math.PI * 2); g.fill();
   g.strokeStyle = '#3A2C44'; g.lineWidth = 2 * dpr; g.beginPath(); g.arc(R, R, R * .96, 0, Math.PI * 2); g.stroke();
 
-  // oscyloskop
   dpr = fit(scope); g = scope.getContext('2d'); const SW = scope.width, SH = scope.height;
   g.clearRect(0, 0, SW, SH);
   g.strokeStyle = 'rgba(164,198,57,.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, SH / 2); g.lineTo(SW, SH / 2); g.stroke();
   if (ctx) {
     N.analyser.getByteTimeDomainData(scopeBuf);
     g.strokeStyle = tt > .5 ? '#7CFF6B' : '#A4C639'; g.lineWidth = 1.5 * dpr; g.beginPath();
-    for (let i = 0; i < scopeBuf.length; i++) { const X = i / (scopeBuf.length - 1) * SW, Y = (scopeBuf[i] / 255) * SH; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }
+    for (let i = 0; i < scopeBuf.length; i++) { const px = i / (scopeBuf.length - 1) * SW, py = (scopeBuf[i] / 255) * SH; i ? g.lineTo(px, py) : g.moveTo(px, py); }
     g.stroke();
   }
 }
 
 /* ───────────── UI ───────────── */
+$('padsLabel').textContent = 'Pad · klawisze ' + PADS.map(p => p.key.toUpperCase()).join(' ');
 const padsEl = $('pads');
 PADS.forEach(p => {
   const b = document.createElement('div');
@@ -594,7 +654,7 @@ const padEl = id => $('pad-' + id), recBtn = id => $('rec-' + id);
 async function powerOn() {
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   await ctx.resume();
-  buildGraph(); syncOutputs();
+  buildGraph(); syncOutputs(); setHand('sweep');
   $('power').hidden = true; $('liveButtons').hidden = false;
   loadSamples();
 }
@@ -602,7 +662,7 @@ async function powerOff() {
   stopAll();
   if (micStream) { micStream.getTracks().forEach(tr => tr.stop()); micStream = null; micSrc = null; }
   micOn = micActive = false; $('micBtn').classList.remove('active');
-  await ctx.close(); ctx = null; N = {}; t = 0;
+  await ctx.close(); ctx = null; N = {}; for (const k in st) delete st[k]; tuning = null;
   $('power').hidden = false; $('liveButtons').hidden = true;
   $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = 'UKF · 87,5–108 MHz';
 }
@@ -610,8 +670,13 @@ $('powerBtn').addEventListener('click', powerOn);
 $('offBtn').addEventListener('click', powerOff);
 $('micBtn').addEventListener('click', toggleMic);
 $('stopBtn').addEventListener('click', stopAll);
-const holdOn = () => { if (!ctx) return; if (!holdActive) tuneTo(+(88 + Math.random() * 19.5).toFixed(1), 'TRZYMAM STACJĘ'); holdActive = true; $('holdBtn').classList.add('active'); };
-const holdOff = () => { holdActive = false; $('holdBtn').classList.remove('active'); };
+// przytrzymanie łapie stację najbliższą igle
+const holdOn = () => {
+  if (!ctx || holdStation) return;
+  holdStation = Object.values(st).filter(s => !s.mic || micOn).reduce((a, b) => Math.abs(b.f - x) < Math.abs(a.f - x) ? b : a);
+  $('holdBtn').classList.add('active');
+};
+const holdOff = () => { holdStation = null; $('holdBtn').classList.remove('active'); };
 $('holdBtn').addEventListener('pointerdown', holdOn);
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('holdBtn').addEventListener(ev, holdOff));
 
@@ -621,7 +686,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); holdOn(); return; }
   if (e.key === 'Escape') { stopAll(); return; }
   if (e.key.toLowerCase() === 'm') { toggleMic(); return; }
-  const p = PADS.find(x => x.key === e.key.toLowerCase()); if (p) playPad(p.id);
+  const p = PADS.find(a => a.key === e.key.toLowerCase()); if (p) playPad(p.id);
 });
 document.addEventListener('keyup', e => { if (e.code === 'Space') holdOff(); });
 
