@@ -89,6 +89,10 @@ button { font: inherit; cursor: pointer; }
 .pad.recording { border-color: #ff4d4d; }
 
 .help { color: var(--muted); font-size: 13px; display: grid; gap: 6px; max-width: 70ch; }
+.adv { border-top: 1px solid var(--line); padding-top: 12px; }
+.adv summary { cursor: pointer; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--cream); margin-bottom: 12px; }
+.adv .chk { display: flex; align-items: center; gap: 8px; } .adv .chk input { accent-color: var(--magenta); width: 18px; height: 18px; }
+.advfoot { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 14px; font-size: 12px; opacity: .8; }
 .credits summary { cursor: pointer; color: var(--cream); }
 .credits p { margin: 8px 0 0; font-size: 12px; }
 .credits a { color: var(--lavender, #F5D0FE); }
@@ -131,14 +135,29 @@ button { font: inherit; cursor: pointer; }
     </div>
 
     <div class="controls">
-      <label class="ctl" for="model"><span class="row"><span class="label">Brzmienie</span></span><select id="model"><option value="2">UKF · prawdziwy eter (v2)</option><option value="3">Krótkie fale · 49 m</option><option value="1">Bazowe (v1 · reset)</option></select></label>
-      <label class="ctl" for="ether"><span class="row"><span class="label">Gęstość eteru</span><output id="etherOut"></output></span><input id="ether" type="range" min="0" max="150" value="100"></label>
+      <label class="ctl" for="model"><span class="row"><span class="label">Brzmienie</span></span><select id="model"><option value="4">Ciepłe · jak z filmu</option><option value="2">UKF · prawdziwy eter</option><option value="3">Krótkie fale · 49 m</option><option value="1">Bazowe (v1 · reset)</option></select></label>
       <label class="ctl" for="thr"><span class="row"><span class="label">Czułość mikrofonu</span><output id="thrOut"></output></span><input id="thr" type="range" min="1" max="60" value="18"></label>
       <label class="ctl" for="micGain"><span class="row"><span class="label">Głośność głosu</span><output id="micGainOut"></output></span><input id="micGain" type="range" min="0" max="300" value="120"></label>
       <label class="ctl" for="noise"><span class="row"><span class="label">Głośność szumu</span><output id="noiseOut"></output></span><input id="noise" type="range" min="0" max="100" value="55"></label>
-      <label class="ctl" for="purity"><span class="row"><span class="label">Czystość stacji</span><output id="purityOut"></output></span><input id="purity" type="range" min="40" max="100" value="82"></label>
-      <label class="ctl" for="lockTime"><span class="row"><span class="label">Czas nastrajania</span><output id="lockTimeOut"></output></span><input id="lockTime" type="range" min="2" max="40" value="10"></label>
-      <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="9"></label>
+    </div>
+    <details class="adv" id="adv">
+      <summary>Zaawansowane · <span id="advName"></span></summary>
+      <div class="controls">
+        <label class="ctl" for="purity"><span class="row"><span class="label">Czystość stacji</span><output id="purityOut"></output></span><input id="purity" type="range" min="40" max="100" value="82"></label>
+        <label class="ctl" for="lockTime"><span class="row"><span class="label">Czas nastrajania</span><output id="lockTimeOut"></output></span><input id="lockTime" type="range" min="2" max="40" value="10"></label>
+        <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="9"></label>
+        <label class="ctl" for="linger"><span class="row"><span class="label">Postoje na obcych stacjach</span><output id="lingerOut"></output></span><input id="linger" type="range" min="0" max="100" value="10"></label>
+        <label class="ctl" for="ether"><span class="row"><span class="label">Gęstość eteru</span><output id="etherOut"></output></span><input id="ether" type="range" min="0" max="150" value="100"></label>
+        <label class="ctl" for="fade"><span class="row"><span class="label">Zaniki i falowanie</span><output id="fadeOut"></output></span><input id="fade" type="range" min="0" max="100" value="100"></label>
+        <label class="ctl" for="crackle"><span class="row"><span class="label">Trzaski</span><output id="crackleOut"></output></span><input id="crackle" type="range" min="0" max="100" value="50"></label>
+        <label class="ctl" for="buzz"><span class="row"><span class="label">Brzęczenie urządzeń</span><output id="buzzOut"></output></span><input id="buzz" type="range" min="0" max="100" value="30"></label>
+        <label class="ctl" for="whistle"><span class="row"><span class="label">Gwizd odbiornika</span><output id="whistleOut"></output></span><input id="whistle" type="range" min="0" max="100" value="15"></label>
+        <label class="ctl" for="tone"><span class="row"><span class="label">Barwa (ciemna → jasna)</span><output id="toneOut"></output></span><input id="tone" type="range" min="20" max="80" value="52"></label>
+        <label class="ctl" for="warmth"><span class="row"><span class="label">Ciepło lampy</span><output id="warmthOut"></output></span><input id="warmth" type="range" min="0" max="100" value="30"></label>
+        <label class="ctl chk" for="morse"><input id="morse" type="checkbox"> <span class="label">Stacja z alfabetem Morse’a</span></label>
+      </div>
+      <div class="advfoot"><button class="btn" id="resetPreset" type="button">Przywróć ustawienia tego brzmienia</button><span>Zmiany zapamiętują się w tej przeglądarce, osobno dla każdego brzmienia.</span></div>
+    </details>
     </div>
   </section>
 
@@ -215,6 +234,46 @@ const setOut = (id, txt) => { $(id + 'Out').textContent = txt; };
 const val = id => +$(id).value;
 const clamp = (a, lo, hi) => Math.max(lo, Math.min(hi, a));
 const rnd = (a, b) => a + Math.random() * (b - a);
+/* ───────────── Brzmienia (presety) ───────────── */
+// każde brzmienie = silnik odbiornika + komplet ustawień; zmiany użytkownika zapisują się osobno dla brzmienia
+const ENGINES = { 1: 'fm-receiver-v1', 2: 'fm-receiver', 3: 'am-receiver', 4: 'fm-receiver' };
+const NAMES = { 1: 'Bazowe (v1)', 2: 'UKF · prawdziwy eter', 3: 'Krótkie fale · 49 m', 4: 'Ciepłe · jak z filmu' };
+const PRESET_KEYS = ['noise', 'purity', 'lockTime', 'hang', 'linger', 'ether', 'fade', 'crackle', 'buzz', 'whistle', 'tone', 'warmth', 'morse'];
+const PRESETS = {
+  1: { noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 0, fade: 0, crackle: 50, buzz: 0, whistle: 0, tone: 52, warmth: 30, morse: 0 },
+  2: { noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 100, fade: 100, crackle: 50, buzz: 20, whistle: 0, tone: 52, warmth: 30, morse: 0 },
+  3: { noise: 45, purity: 88, lockTime: 10, hang: 9, linger: 10, ether: 60, fade: 80, crackle: 50, buzz: 0, whistle: 12, tone: 32, warmth: 40, morse: 0 },
+  // jak radio, którym mówi robot w kinie: wycinki wskakują szybko, ciepły wąski głośnik, mało szumu między nimi
+  4: { noise: 28, purity: 96, lockTime: 3, hang: 5, linger: 0, ether: 25, fade: 15, crackle: 20, buzz: 0, whistle: 0, tone: 34, warmth: 90, morse: 0 },
+};
+// które pokrętła mają sens w danym silniku
+const ONLY = { ether: [2, 3, 4], fade: [2, 3, 4], buzz: [2, 4], whistle: [3] };
+const model = () => $('model').value;
+function readPreset() {
+  const o = {}; for (const k of PRESET_KEYS) o[k] = k === 'morse' ? +$(k).checked : val(k); return o;
+}
+function applyPreset(m) {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('radio-preset-' + m) || 'null'); } catch (e) {}
+  const p = { ...PRESETS[m], ...(saved || {}) };
+  for (const k of PRESET_KEYS) { if (k === 'morse') $(k).checked = !!p[k]; else $(k).value = p[k]; }
+  for (const [k, ms] of Object.entries(ONLY)) $(k).closest('.ctl').hidden = !ms.includes(+m);
+  $('advName').textContent = NAMES[m];
+  syncOutputs(); applyVoicing();
+}
+function savePreset() { try { localStorage.setItem('radio-preset-' + model(), JSON.stringify(readPreset())); } catch (e) {} }
+// barwa głośnika i lampy: ustawiana na żywo z pokręteł
+function applyVoicing() {
+  if (!ctx || !N.lp) return;
+  const t = ctx.currentTime, w = val('warmth') / 100;
+  N.lp.frequency.setTargetAtTime(val('tone') * 100, t, .05);
+  N.spk.frequency.setTargetAtTime(150 - 70 * w, t, .05);
+  N.body.gain.setTargetAtTime(6 * w, t, .05);
+  N.pk1.gain.setTargetAtTime(4 - 2.5 * w, t, .05);
+  const k = Math.round((1.2 + 2.4 * w) * 10) / 10;
+  if (N.tubeK !== k) { N.tubeK = k; N.tube.curve = tubeCurve(k, .1); }
+}
+
 function syncOutputs() {
   setOut('thr', val('thr'));
   setOut('micGain', val('micGain') + '%');
@@ -222,12 +281,14 @@ function syncOutputs() {
   setOut('purity', val('purity') + '%');
   setOut('lockTime', (val('lockTime') / 10).toFixed(1) + ' s');
   setOut('hang', (val('hang') / 10).toFixed(1) + ' s');
-  setOut('ether', val('ether') + '%');
+  for (const k of ['ether', 'fade', 'crackle', 'buzz', 'whistle', 'warmth', 'linger']) setOut(k, val(k) + '%');
+  setOut('tone', (val('tone') / 10).toFixed(1).replace('.', ',') + ' kHz');
   $('micThr').style.left = Math.min(100, val('thr') / 60 * 100) + '%';
   if (N.micIn) N.micIn.gain.setTargetAtTime(val('micGain') / 100, ctx.currentTime, 0.05);
 }
-['thr', 'micGain', 'noise', 'purity', 'lockTime', 'hang', 'ether'].forEach(id => $(id).addEventListener('input', syncOutputs));
-syncOutputs();
+['thr', 'micGain', 'noise'].forEach(id => $(id).addEventListener('input', syncOutputs));
+PRESET_KEYS.forEach(id => $(id).addEventListener('input', () => { syncOutputs(); applyVoicing(); savePreset(); }));
+$('morse').addEventListener('change', savePreset);
 
 /* ───────────── Materiał dźwiękowy ───────────── */
 // lampowe nasycenie: asymetryczne, daje parzyste harmoniczne zamiast cyfrowego „przesteru"
@@ -285,10 +346,11 @@ function buildGraph() {
 
   // głośnik starego odbiornika: wąskie pasmo, nosowy rezonans obudowy
   N.spk = c.createBiquadFilter(); N.spk.type = 'highpass'; N.spk.frequency.value = 150; N.spk.Q.value = .7;
-  const pk1 = c.createBiquadFilter(); pk1.type = 'peaking'; pk1.frequency.value = 1050; pk1.gain.value = 4; pk1.Q.value = .9;
+  N.body = c.createBiquadFilter(); N.body.type = 'peaking'; N.body.frequency.value = 280; N.body.Q.value = .8; N.body.gain.value = 0;   // pudło rezonansowe
+  const pk1 = N.pk1 = c.createBiquadFilter(); pk1.type = 'peaking'; pk1.frequency.value = 1050; pk1.gain.value = 4; pk1.Q.value = .9;
   const pk2 = c.createBiquadFilter(); pk2.type = 'peaking'; pk2.frequency.value = 2900; pk2.gain.value = 2; pk2.Q.value = 1.4;
-  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = .6;
-  N.spk.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(N.master);
+  const lp = N.lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = .6;
+  N.spk.connect(N.body); N.body.connect(pk1); pk1.connect(pk2); pk2.connect(lp); lp.connect(N.master);
   N.tube = c.createWaveShaper(); N.tube.curve = tubeCurve(1.6, .1); N.tube.oversample = '4x';
   N.tube.connect(N.spk);
 
@@ -297,12 +359,13 @@ function buildGraph() {
   makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
   N.list = Object.values(st);
   N.model = $('model').value;
-  N.rx = new AudioWorkletNode(c, { 1: 'fm-receiver-v1', 3: 'am-receiver' }[N.model] || 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+  N.rx = new AudioWorkletNode(c, ENGINES[N.model], { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   N.list.forEach((s, i) => { s.idx = i; s.in.connect(N.rx, 0, i); });
   N.rx.connect(N.tube);
   N.freqArr = new Float32Array(N.list.length); N.ampArr = new Float32Array(N.list.length);
   // dalekie stacje „dywanu” biorą program z nadajników tła (nie z padów ani mikrofonu)
   N.rx.port.postMessage({ carpetSrc: N.list.filter(s => !s.pad && !s.mic).map(s => s.idx) });
+  N.tubeK = 0;
 
   // przydźwięk sieci 50 Hz — cichutki, z wnętrza odbiornika
   N.hum = c.createOscillator(); N.hum.type = 'sawtooth'; N.hum.frequency.value = 50;
@@ -331,7 +394,7 @@ function makeStation(def) {
   st[def.id] = s;
 }
 function startLoop(s) {
-  if (!s.buf || s.mic || !ctx || s.in.context !== ctx) return;   // stare ładowanie po przełączeniu brzmienia
+  if (!s.buf || s.mic || s.pad || !ctx || s.in.context !== ctx) return;   // pad gra tylko po kliknięciu   // stare ładowanie po przełączeniu brzmienia
   if (s.src) { try { s.src.stop(); } catch (e) {} }
   s.src = ctx.createBufferSource(); s.src.buffer = s.buf; s.src.loop = true;
   s.src.connect(s.in); s.src.start(0, Math.random() * s.buf.duration); s.playing = false;
@@ -367,8 +430,6 @@ function endPad(id) {
   const s = st[id]; s.playing = false;
   const i = order.indexOf(id); if (i >= 0) order.splice(i, 1);
   padEl(id).classList.remove('playing');
-  // stacja wraca do nadawania w tle po chwili ciszy w eterze
-  setTimeout(() => { if (ctx && !s.playing) startLoop(s); }, rnd(1500, 4000));
 }
 function stopPad(id) {
   const s = st[id]; if (!s.playing) return;
@@ -461,7 +522,7 @@ function newTuning(target) {
   return {
     st: target, age: 0,
     omega: rnd(4, 6.5) / lockT, zeta: rnd(.28, .6),        // każde strojenie ma inną „rękę"
-    resid: side * (1 - purity) * rnd(.25, .6),             // nigdy nie trafia idealnie
+    resid: side * (1 - purity) * rnd(.25, .6) * (model() === '3' ? .15 : 1),   // nigdy nie trafia idealnie
     detour: Math.random() < .45 ? side * rnd(.18, .5) : 0,  // czasem przekręca za daleko
     detourT: rnd(.2, .4) * lockT,
   };
@@ -472,7 +533,7 @@ function moveDial(dt) {
   if (target) {
     if (!tuning || tuning.st !== target) tuning = newTuning(target);
     tuning.age += dt;
-    const lim = (1 - purity) * .65 + .006;
+    const lim = ((1 - purity) * .65 + .006) * (model() === '3' ? .15 : 1);
     tuning.resid = clamp(tuning.resid + (Math.random() - .5) * dt * .05, -lim, lim);
     const goal = target.f + tuning.resid + (tuning.age < tuning.detourT ? tuning.detour : 0);
     const { omega: w, zeta: z } = tuning;
@@ -490,18 +551,23 @@ function setHand(mode) {
   if (mode === 'sweep') { const dir = hand.vt ? Math.sign(hand.vt) * (Math.random() < .7 ? 1 : -1) : (Math.random() < .5 ? -1 : 1); hand.vt = dir * (Math.random() < .25 ? rnd(2.5, 6) : rnd(.3, 2)); hand.until = now + rnd(.4, 2.2); }
   if (mode === 'pause') hand.until = now + rnd(.3, 1.6);
   if (mode === 'fine') { hand.until = now + rnd(.6, 1.8); hand.flip = 0; }
-  if (mode === 'linger') hand.until = now + rnd(.9, 3.2);
+  if (mode === 'linger') hand.until = now + rnd(.5, .6 + val('linger') / 100 * 2.6);
 }
 function scanHand(dt) {
   const now = performance.now() / 1000;
   if (now > hand.until) { const r = Math.random(); setHand(r < .5 ? 'sweep' : r < .72 ? 'pause' : 'fine'); }
+  // zatrzymanie przy obcej stacji trwa tylko tyle, ile pozwalają „Postoje”; potem ręka jedzie dalej
+  if (hand.mode === 'pause' || hand.mode === 'fine') {
+    const busy = ALL.find(a => !a.pad && Math.abs(a.f - x) < .13);
+    if (busy && Math.random() > val('linger') / 100) setHand('sweep');
+  }
   if (hand.mode === 'sweep') {
     v += (hand.vt - v) * Math.min(1, dt * 3);
     // przelot obok stacji: czasem ręka się zatrzymuje i słucha
     const near = ALL.concat([st.mic]).find(a => Math.abs(a.f - x) < .1);
     if (near && hand.passing !== near.id) {
       hand.passing = near.id;
-      if (hand.lingered !== near.id && Math.random() < .4) { hand.lingered = near.id; hand.anchor = near.f + rnd(-.07, .07); setHand('linger'); }
+      if (hand.lingered !== near.id && Math.random() < val('linger') / 100 * .6) { hand.lingered = near.id; hand.anchor = near.f + rnd(-.07, .07); setHand('linger'); }
     }
     if (!near) hand.passing = null;
   } else if (hand.mode === 'pause') {
@@ -529,9 +595,12 @@ function tick(nowMs) {
   const noiseLvl = val('noise') / 100, purity = val('purity') / 100;
   const target = currentTarget();
   let sMax = 0;
+  N.exclArr = N.exclArr || [];
+  N.exclArr.length = 0;
   for (const s of N.list) {
     N.freqArr[s.idx] = s.f;
-    N.ampArr[s.idx] = s.mic && !micOn ? 0 : s.power;
+    N.ampArr[s.idx] = (s.mic && !micOn) || (s.id === 'morse' && !$('morse').checked) ? 0 : s.power;
+    if (s.pad || s.mic) N.exclArr.push(s.f);     // przy stacjach z programu nie ma dalekich nośnych (bez gwizdów)
     s.s = s.mic && !micOn ? 0 : strength(s);
     if (s.s > sMax) sMax = s.s;
   }
@@ -539,8 +608,10 @@ function tick(nowMs) {
     x, freq: N.freqArr, amp: N.ampArr,
     sigma: .025 + (1 - purity) * .22,    // im mniejsza czystość, tym słabszy sygnał względem szumu
     hiss: noiseLvl * .3,
-    impRate: .25 + noiseLvl * .9,
+    impRate: val('crackle') / 100 * 1.6,
     carpet: val('ether') / 100,
+    fade: val('fade') / 100, buzz: val('buzz') / 100, whistle: val('whistle') / 100,
+    excl: N.exclArr,
   });
   N.humG.gain.setTargetAtTime(noiseLvl * (.003 + .012 * sMax * (1 - sMax)), ctx.currentTime, .05);
 
@@ -556,7 +627,7 @@ function tick(nowMs) {
 
 /* ───────────── Pasmo: UKF albo krótkie fale ───────────── */
 // pozycja igły jest wspólna; na krótkich falach 0,1 działki = 5 kHz w paśmie 49 m (5900–6925 kHz)
-const isSW = () => $('model').value === '3';
+const isSW = () => model() === '3';
 const kHz = f => Math.round(5900 + (f - 87.5) * 50);
 const fmtF = f => isSW() ? kHz(f).toLocaleString('pl-PL') + ' kHz' : f.toFixed(1).replace('.', ',') + ' MHz';
 const bandName = () => isSW() ? 'KF · 49 m · 5900–6925 kHz' : 'UKF · 87,5–108 MHz';
@@ -650,7 +721,7 @@ async function powerOn() {
   await ctx.audioWorklet.addModule('/radio/fm-receiver.js');
   await ctx.audioWorklet.addModule('/radio/fm-receiver-v1.js');
   await ctx.audioWorklet.addModule('/radio/am-receiver.js');
-  buildGraph(); syncOutputs(); setHand('sweep');
+  buildGraph(); syncOutputs(); applyVoicing(); setHand('sweep');
   $('power').hidden = true; $('liveButtons').hidden = false;
   loadSamples();
 }
@@ -663,11 +734,12 @@ async function powerOff() {
   $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = bandName();
 }
 $('powerBtn').addEventListener('click', powerOn);
-try { const m = localStorage.getItem('radio-model'); if (m) $('model').value = m; } catch (e) {}
-relabel();
+try { const m = localStorage.getItem('radio-model'); if (m && PRESETS[m]) $('model').value = m; } catch (e) {}
+applyPreset(model()); relabel();
+$('resetPreset').addEventListener('click', () => { try { localStorage.removeItem('radio-preset-' + model()); } catch (e) {} applyPreset(model()); });
 $('model').addEventListener('change', async () => {
   try { localStorage.setItem('radio-model', $('model').value); } catch (e) {}
-  relabel();
+  applyPreset(model()); relabel();
   if (ctx) { await powerOff(); await powerOn(); }
 });
 $('offBtn').addEventListener('click', powerOff);

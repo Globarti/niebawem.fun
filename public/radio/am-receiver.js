@@ -64,6 +64,7 @@ class AMReceiver extends AudioWorkletProcessor {
     this.carpetSrc = Array.from({ length: n }, (_, i) => i);
     this.imp = 0; this.impAmp = 0; this.impDecay = 1; this.burst = 0; this.burstNext = 0;
     this.lo = 0; this.loF = 0; this.loDrift = 0;   // przeciek generatora odbiornika
+    this.fadeLvl = 1; this.buzzLvl = 0; this.whistle = .12; this.excl = [];
     this.makeCarpet();
     this.f1 = butterLP(IF_FC, .5412, this.sr); this.f2 = butterLP(IF_FC, 1.3066, this.sr);
     this.sI1 = [0, 0]; this.sI2 = [0, 0]; this.sQ1 = [0, 0]; this.sQ2 = [0, 0];
@@ -79,6 +80,10 @@ class AMReceiver extends AudioWorkletProcessor {
       if (d.impRate !== undefined) this.impRate = d.impRate;
       if (d.carpetSrc) this.carpetSrc = d.carpetSrc;
       if (d.carpet !== undefined) this.carpetLvl = d.carpet;
+      if (d.fade !== undefined) this.fadeLvl = d.fade;
+      if (d.buzz !== undefined) this.buzzLvl = d.buzz;
+      if (d.whistle !== undefined) this.whistle = d.whistle;
+      if (d.excl) this.excl = d.excl;
     };
   }
   // krótkie fale są zatłoczone: nośna prawie w każdym kanale 5 kHz, lekko obok siatki → gwizdy dudnień
@@ -104,12 +109,12 @@ class AMReceiver extends AudioWorkletProcessor {
     }
     const cA = sig * Math.sqrt(2 * IF_NOISE) * this.carpetLvl;
     if (cA > 0) for (const c of this.carpet) {
-      if (Math.abs(c.f - this.xt) >= REACH) continue;
+      if (Math.abs(c.f - this.xt) >= REACH || this.excl.some(f => Math.abs(c.f - f) < .17)) continue;
       c.ch.a.step(dtB); c.ch.b.step(dtB); c.A = cA * Math.pow(10, c.db / 20); cnear.push(c);
     }
     // generator odbiornika lekko pływa (nagrzewanie lamp)
     this.loDrift += (rnd(-1, 1) * 8 - this.loDrift) * .002;
-    const loAmp = sig * Math.sqrt(2 * IF_NOISE) * 1.2;
+    const loAmp = sig * Math.sqrt(2 * IF_NOISE) * this.whistle * 8, fl = this.fadeLvl;
     // pioruny: seria kilku wyładowań w odstępach dziesiątek ms
     if (this.burst <= 0 && Math.random() < this.impRate * .15 * dtB) { this.burst = 2 + Math.floor(Math.random() * 6); this.burstNext = 0; }
     const nIF = sig * Math.sqrt(2 * IF_NOISE);
@@ -135,7 +140,7 @@ class AMReceiver extends AudioWorkletProcessor {
         this.phase[i] += TWO_PI * d * HZ_PER_UNIT / sr;
         if (this.phase[i] > 1e6) this.phase[i] %= TWO_PI;
         const s1 = Math.max(0, 1 + .85 * r[w]), s2 = Math.max(0, 1 + .85 * r[(w - c.dly + DLY) % DLY]) * c.g2;
-        const gr = s1 * c.a.re + s2 * c.b.re, gi = s1 * c.a.im + s2 * c.b.im;
+        const gr = s1 * (1 + fl * (c.a.re - 1)) + fl * s2 * c.b.re, gi = fl * (s1 * c.a.im + s2 * c.b.im);
         const a = this.ampNow[i] * edge, cs = Math.cos(this.phase[i]), sn = Math.sin(this.phase[i]);
         I += a * (gr * cs - gi * sn); Q += a * (gr * sn + gi * cs);
       }
@@ -146,7 +151,7 @@ class AMReceiver extends AudioWorkletProcessor {
         c.phase += TWO_PI * d * HZ_PER_UNIT / sr;
         if (c.phase > 1e6) c.phase %= TWO_PI;
         const s1 = Math.max(0, 1 + .85 * c.gain * r[w]), s2 = Math.max(0, 1 + .85 * c.gain * r[(w - c.ch.dly + DLY) % DLY]) * c.ch.g2;
-        const gr = s1 * c.ch.a.re + s2 * c.ch.b.re, gi = s1 * c.ch.a.im + s2 * c.ch.b.im;
+        const gr = s1 * (1 + fl * (c.ch.a.re - 1)) + fl * s2 * c.ch.b.re, gi = fl * (s1 * c.ch.a.im + s2 * c.ch.b.im);
         const A = c.A * edge, cs = Math.cos(c.phase), sn = Math.sin(c.phase);
         I += A * (gr * cs - gi * sn); Q += A * (gr * sn + gi * cs);
       }

@@ -74,6 +74,7 @@ class FMReceiver extends AudioWorkletProcessor {
     this.impRate = 0.4;                 // zakłócenia impulsowe na sekundę
     this.imp = 0; this.impAmp = 0; this.impDecay = 1;
     this.buzz = 0; this.buzzAmp = 0; this.buzzPh = 0;   // brzęczenie od urządzeń sieciowych
+    this.fadeLvl = 1; this.buzzLvl = .2; this.whistle = 0; this.excl = [];
     this.makeCarpet(n);
     this.f1 = butterLP(IF_FC, 0.5412, this.sr); this.f2 = butterLP(IF_FC, 1.3066, this.sr);
     this.sI1 = [0, 0]; this.sI2 = [0, 0]; this.sQ1 = [0, 0]; this.sQ2 = [0, 0];
@@ -92,6 +93,10 @@ class FMReceiver extends AudioWorkletProcessor {
       if (d.impRate !== undefined) this.impRate = d.impRate;
       if (d.carpetSrc) this.carpetSrc = d.carpetSrc;
       if (d.carpet !== undefined) this.carpetLvl = d.carpet;
+      if (d.fade !== undefined) this.fadeLvl = d.fade;
+      if (d.buzz !== undefined) this.buzzLvl = d.buzz;
+      if (d.whistle !== undefined) this.whistle = d.whistle;
+      if (d.excl) this.excl = d.excl;
     };
   }
   // dalekie stacje: gęsto w całym paśmie, siła w okolicy progu FM, zaniki Rayleigha (brak widoczności nadajnika)
@@ -126,19 +131,20 @@ class FMReceiver extends AudioWorkletProcessor {
       this.ampNow[i] += (this.amp[i] - this.ampNow[i]) * .08;
       const d = this.freq[i] - this.xt;
       if (Math.abs(d) < REACH && this.ampNow[i] > 1e-4) {
-        const F = this.fad[i]; F.step(dtB); this.gRe[i] = F.re; this.gIm[i] = F.im;
+        const F = this.fad[i], fl = this.fadeLvl; F.step(dtB);
+        this.gRe[i] = 1 + fl * (F.re - 1); this.gIm[i] = fl * F.im;
         near.push(i);
         const hz = d * HZ_PER_MHZ, h2 = 1 / (1 + (hz / IF_FC) ** 8);
-        carrier += this.ampNow[i] ** 2 * (F.re * F.re + F.im * F.im) * h2;
+        carrier += this.ampNow[i] ** 2 * (this.gRe[i] ** 2 + this.gIm[i] ** 2) * h2;
       }
     }
     const cAmp0 = sig * Math.sqrt(2 * IF_NOISE) * this.carpetLvl;
     if (cAmp0 > 0) for (const c of this.carpet) {
       const d = c.f - this.xt;
-      if (Math.abs(d) >= REACH) continue;
+      if (Math.abs(d) >= REACH || this.excl.some(f => Math.abs(c.f - f) < .17)) continue;
       c.fad.step(dtB);
-      const a = cAmp0 * Math.pow(10, c.db / 20);
-      c.gRe = a * c.fad.re; c.gIm = a * c.fad.im;
+      const a = cAmp0 * Math.pow(10, c.db / 20), fl = this.fadeLvl;
+      c.gRe = a * (1 + fl * (c.fad.re - 1)); c.gIm = a * fl * c.fad.im;
       cnear.push(c);
       const hz = d * HZ_PER_MHZ, h2 = 1 / (1 + (hz / IF_FC) ** 8);
       carrier += (c.gRe * c.gRe + c.gIm * c.gIm) * h2;
@@ -150,7 +156,7 @@ class FMReceiver extends AudioWorkletProcessor {
     const sm = Math.min(1, Math.max(0, (this.cnrSm - 6) / 18));
     const muteT = this.hiss + (1 - this.hiss) * sm * sm * (3 - 2 * sm);
     // zakłócenia przemysłowe: czasem przez kilka sekund brzęczy urządzenie zsynchronizowane z siecią
-    if (this.buzz <= 0 && Math.random() < this.impRate * .02 * dtB) { this.buzz = rnd(1, 6) * sr; this.buzzAmp = sig * rnd(1.5, 6); }
+    if (this.buzz <= 0 && Math.random() < this.buzzLvl * .04 * dtB) { this.buzz = rnd(1, 5) * sr; this.buzzAmp = sig * rnd(1.5, 5) * this.buzzLvl; }
     const gR = this.gRe, gI = this.gIm;
     for (let k = 0; k < L; k++) {
       this.x += (this.xt - this.x) * .0015;
