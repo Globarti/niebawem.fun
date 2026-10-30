@@ -147,6 +147,7 @@ button { font: inherit; cursor: pointer; }
         <label class="ctl" for="lockTime"><span class="row"><span class="label">Czas nastrajania</span><output id="lockTimeOut"></output></span><input id="lockTime" type="range" min="2" max="40" value="10"></label>
         <label class="ctl" for="hang"><span class="row"><span class="label">Trzymanie po ciszy</span><output id="hangOut"></output></span><input id="hang" type="range" min="2" max="30" value="9"></label>
         <label class="ctl" for="linger"><span class="row"><span class="label">Postoje na obcych stacjach</span><output id="lingerOut"></output></span><input id="linger" type="range" min="0" max="100" value="10"></label>
+        <label class="ctl" for="glimpse"><span class="row"><span class="label">Głośność obcych stacji</span><output id="glimpseOut"></output></span><input id="glimpse" type="range" min="0" max="120" value="40"></label>
         <label class="ctl" for="ether"><span class="row"><span class="label">Gęstość eteru</span><output id="etherOut"></output></span><input id="ether" type="range" min="0" max="150" value="100"></label>
         <label class="ctl" for="fade"><span class="row"><span class="label">Zaniki i falowanie</span><output id="fadeOut"></output></span><input id="fade" type="range" min="0" max="100" value="100"></label>
         <label class="ctl" for="crackle"><span class="row"><span class="label">Trzaski</span><output id="crackleOut"></output></span><input id="crackle" type="range" min="0" max="100" value="50"></label>
@@ -238,16 +239,16 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 // każde brzmienie = silnik odbiornika + komplet ustawień; zmiany użytkownika zapisują się osobno dla brzmienia
 const ENGINES = { 1: 'fm-receiver-v1', 2: 'fm-receiver', 3: 'am-receiver', 4: 'fm-receiver' };
 const NAMES = { 1: 'Bazowe (v1)', 2: 'UKF · prawdziwy eter', 3: 'Krótkie fale · 49 m', 4: 'Ciepłe · jak z filmu' };
-const PRESET_KEYS = ['noise', 'purity', 'lockTime', 'hang', 'linger', 'ether', 'fade', 'crackle', 'buzz', 'whistle', 'tone', 'warmth', 'morse'];
+const PRESET_KEYS = ['noise', 'purity', 'lockTime', 'hang', 'linger', 'glimpse', 'ether', 'fade', 'crackle', 'buzz', 'whistle', 'tone', 'warmth', 'morse'];
 const PRESETS = {
-  1: { noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 0, fade: 0, crackle: 50, buzz: 0, whistle: 0, tone: 52, warmth: 30, morse: 0 },
-  2: { noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 100, fade: 100, crackle: 50, buzz: 20, whistle: 0, tone: 52, warmth: 30, morse: 0 },
-  3: { noise: 45, purity: 88, lockTime: 10, hang: 9, linger: 10, ether: 60, fade: 80, crackle: 50, buzz: 0, whistle: 12, tone: 32, warmth: 40, morse: 0 },
+  1: { glimpse: 40, noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 0, fade: 0, crackle: 50, buzz: 0, whistle: 0, tone: 52, warmth: 30, morse: 0 },
+  2: { glimpse: 40, noise: 55, purity: 82, lockTime: 10, hang: 9, linger: 10, ether: 100, fade: 100, crackle: 50, buzz: 20, whistle: 0, tone: 52, warmth: 30, morse: 0 },
+  3: { glimpse: 50, noise: 45, purity: 88, lockTime: 10, hang: 9, linger: 10, ether: 60, fade: 80, crackle: 50, buzz: 0, whistle: 12, tone: 32, warmth: 40, morse: 0 },
   // jak radio, którym mówi robot w kinie: wycinki wskakują szybko, ciepły wąski głośnik, mało szumu między nimi
-  4: { noise: 28, purity: 96, lockTime: 3, hang: 5, linger: 0, ether: 25, fade: 15, crackle: 20, buzz: 0, whistle: 0, tone: 34, warmth: 90, morse: 0 },
+  4: { glimpse: 25, noise: 28, purity: 96, lockTime: 3, hang: 5, linger: 0, ether: 25, fade: 15, crackle: 20, buzz: 0, whistle: 0, tone: 34, warmth: 90, morse: 0 },
 };
 // które pokrętła mają sens w danym silniku
-const ONLY = { ether: [2, 3, 4], fade: [2, 3, 4], buzz: [2, 4], whistle: [3] };
+const ONLY = { glimpse: [2, 3, 4], ether: [2, 3, 4], fade: [2, 3, 4], buzz: [2, 4], whistle: [3] };
 const model = () => $('model').value;
 function readPreset() {
   const o = {}; for (const k of PRESET_KEYS) o[k] = k === 'morse' ? +$(k).checked : val(k); return o;
@@ -282,6 +283,7 @@ function syncOutputs() {
   setOut('lockTime', (val('lockTime') / 10).toFixed(1) + ' s');
   setOut('hang', (val('hang') / 10).toFixed(1) + ' s');
   for (const k of ['ether', 'fade', 'crackle', 'buzz', 'whistle', 'warmth', 'linger']) setOut(k, val(k) + '%');
+  setOut('glimpse', '+' + (val('glimpse') / 10).toFixed(1).replace('.', ',') + ' dB nad szum');
   setOut('tone', (val('tone') / 10).toFixed(1).replace('.', ',') + ' kHz');
   $('micThr').style.left = Math.min(100, val('thr') / 60 * 100) + '%';
   if (N.micIn) N.micIn.gain.setTargetAtTime(val('micGain') / 100, ctx.currentTime, 0.05);
@@ -342,7 +344,8 @@ function buildGraph() {
   N.master = c.createGain(); N.master.gain.value = 1.6;
   N.comp = c.createDynamicsCompressor(); N.comp.threshold.value = -16; N.comp.ratio.value = 3; N.comp.attack.value = .005; N.comp.release.value = .25;
   N.analyser = c.createAnalyser(); N.analyser.fftSize = 1024;
-  N.master.connect(N.comp); N.comp.connect(N.analyser); N.analyser.connect(c.destination);
+  N.lim = c.createDynamicsCompressor(); N.lim.threshold.value = -3; N.lim.knee.value = 0; N.lim.ratio.value = 20; N.lim.attack.value = .001; N.lim.release.value = .12;
+  N.master.connect(N.comp); N.comp.connect(N.lim); N.lim.connect(N.analyser); N.analyser.connect(c.destination);
 
   // głośnik starego odbiornika: wąskie pasmo, nosowy rezonans obudowy
   N.spk = c.createBiquadFilter(); N.spk.type = 'highpass'; N.spk.frequency.value = 150; N.spk.Q.value = .7;
@@ -599,9 +602,10 @@ function tick(nowMs) {
   N.exclArr.length = 0;
   for (const s of N.list) {
     N.freqArr[s.idx] = s.f;
-    N.ampArr[s.idx] = (s.mic && !micOn) || (s.id === 'morse' && !$('morse').checked) ? 0 : s.power;
+    const silent = (s.mic && !micActive) || (s.pad && !s.playing && holdStation !== s) || (s.id === 'morse' && !$('morse').checked);
+    N.ampArr[s.idx] = silent ? 0 : s.power;   // pad i mikrofon są w eterze tylko wtedy, gdy coś nadają
     if (s.pad || s.mic) N.exclArr.push(s.f);     // przy stacjach z programu nie ma dalekich nośnych (bez gwizdów)
-    s.s = s.mic && !micOn ? 0 : strength(s);
+    s.s = N.ampArr[s.idx] ? strength(s) : 0;
     if (s.s > sMax) sMax = s.s;
   }
   N.rx.port.postMessage({
@@ -612,6 +616,7 @@ function tick(nowMs) {
     carpet: val('ether') / 100,
     fade: val('fade') / 100, buzz: val('buzz') / 100, whistle: val('whistle') / 100,
     excl: N.exclArr,
+    open: !!target, glimpse: val('glimpse') / 10,
   });
   N.humG.gain.setTargetAtTime(noiseLvl * (.003 + .012 * sMax * (1 - sMax)), ctx.currentTime, .05);
 

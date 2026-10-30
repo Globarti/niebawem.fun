@@ -29,6 +29,24 @@ function biq(f, s, x) {
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+// Wyrównywacz dla obcych stacji: gdy nikt nie mówi i nie gra pad, przelatujące stacje i przejścia przez nośną
+// nie mogą być głośniejsze od szumu o więcej niż „glimpse” dB. Poziom szumu mierzony na bieżąco, gdy nie ma nośnej.
+class Leveler {
+  constructor(sr) { this.a = Math.exp(-1 / (sr * .004)); this.r = Math.exp(-1 / (sr * .25)); this.env = 0; this.ref = .05; this.g = 1; this.gs = 1; this.k = 1 / (sr * .35); this.L = 1; this.up = Math.exp(3.45 / sr); }
+  run(v, quiet, open, glimpseDb) {
+    const p = Math.abs(v);
+    this.env = p > this.env ? p + this.a * (this.env - p) : p + this.r * (this.env - p);
+    if (quiet) this.ref += (this.env - this.ref) * 2e-5;                // szum bez nośnej = poziom odniesienia
+    const cap = open ? 1e9 : this.ref * Math.pow(10, glimpseDb / 20);
+    // bez stacji z programu głośność może rosnąć najwyżej ~30 dB/s: szum wraca płynnie, nie „strzela”
+    this.L = open ? 1e9 : Math.min(this.L * this.up, Math.max(this.env, this.ref * .03));
+    this.g = Math.min(1, cap / (this.env + 1e-9), this.L / (this.env + 1e-9));
+    this.gs += (this.g - this.gs) * (this.g < this.gs ? .02 : this.k);  // szybko w dół, łagodnie w górę
+    return v * this.gs;
+  }
+}
+
+
 // Zanik Rayleigha: suma M sinusoid z losowymi kątami przyjścia (Zheng i Xiao 2002).
 // fd = częstotliwość Dopplera (Hz); k = współczynnik Rice'a (moc składowej bezpośredniej / rozproszonej).
 class Fader {
@@ -75,6 +93,7 @@ class FMReceiver extends AudioWorkletProcessor {
     this.imp = 0; this.impAmp = 0; this.impDecay = 1;
     this.buzz = 0; this.buzzAmp = 0; this.buzzPh = 0;   // brzęczenie od urządzeń sieciowych
     this.fadeLvl = 1; this.buzzLvl = .2; this.whistle = 0; this.excl = [];
+    this.lev = new Leveler(this.sr); this.open = true; this.glimpse = 4;
     this.makeCarpet(n);
     this.f1 = butterLP(IF_FC, 0.5412, this.sr); this.f2 = butterLP(IF_FC, 1.3066, this.sr);
     this.sI1 = [0, 0]; this.sI2 = [0, 0]; this.sQ1 = [0, 0]; this.sQ2 = [0, 0];
@@ -97,6 +116,8 @@ class FMReceiver extends AudioWorkletProcessor {
       if (d.buzz !== undefined) this.buzzLvl = d.buzz;
       if (d.whistle !== undefined) this.whistle = d.whistle;
       if (d.excl) this.excl = d.excl;
+      if (d.open !== undefined) this.open = d.open;
+      if (d.glimpse !== undefined) this.glimpse = d.glimpse;
     };
   }
   // dalekie stacje: gęsto w całym paśmie, siła w okolicy progu FM, zaniki Rayleigha (brak widoczności nadajnika)
@@ -201,11 +222,12 @@ class FMReceiver extends AudioWorkletProcessor {
       const re = I * this.pI + Q * this.pQ, im = Q * this.pI - I * this.pQ;
       this.pI = I; this.pQ = Q;
       let y = Math.atan2(im, re) * sr / TWO_PI / DEV;
+      y = y / (1 + y * y * .4);                        // S-krzywa dyskryminatora
       this.de = y + this.deA * (this.de - y);          // de-emfaza
       const dc = this.de - this.dcX + .997 * this.dcY;  // usunięcie składowej stałej
       this.dcX = this.de; this.dcY = dc;
-      this.mute += (muteT - this.mute) * .0008;
-      out[k] = dc * .5 * this.mute;
+      this.mute += (muteT - this.mute) * (muteT > this.mute ? .00012 : .0008);   // soft-mute otwiera się powoli
+      out[k] = this.lev.run(dc * .5 * this.mute, this.cnrSm < 3, this.open, this.glimpse);
     }
     if (outputs[0][1]) outputs[0][1].set(out);
     return true;

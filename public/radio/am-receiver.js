@@ -23,6 +23,24 @@ function biq(f, s, x) {
   return y;
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
+
+// Wyrównywacz dla obcych stacji: gdy nikt nie mówi i nie gra pad, przelatujące stacje i przejścia przez nośną
+// nie mogą być głośniejsze od szumu o więcej niż „glimpse” dB. Poziom szumu mierzony na bieżąco, gdy nie ma nośnej.
+class Leveler {
+  constructor(sr) { this.a = Math.exp(-1 / (sr * .004)); this.r = Math.exp(-1 / (sr * .25)); this.env = 0; this.ref = .05; this.g = 1; this.gs = 1; this.k = 1 / (sr * .35); this.L = 1; this.up = Math.exp(3.45 / sr); }
+  run(v, quiet, open, glimpseDb) {
+    const p = Math.abs(v);
+    this.env = p > this.env ? p + this.a * (this.env - p) : p + this.r * (this.env - p);
+    if (quiet) this.ref += (this.env - this.ref) * 2e-5;                // szum bez nośnej = poziom odniesienia
+    const cap = open ? 1e9 : this.ref * Math.pow(10, glimpseDb / 20);
+    // bez stacji z programu głośność może rosnąć najwyżej ~30 dB/s: szum wraca płynnie, nie „strzela”
+    this.L = open ? 1e9 : Math.min(this.L * this.up, Math.max(this.env, this.ref * .03));
+    this.g = Math.min(1, cap / (this.env + 1e-9), this.L / (this.env + 1e-9));
+    this.gs += (this.g - this.gs) * (this.g < this.gs ? .02 : this.k);  // szybko w dół, łagodnie w górę
+    return v * this.gs;
+  }
+}
+
 function gauss() { let u = 0; while (u === 0) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TWO_PI * Math.random()); }
 
 // Zanik o gaussowskim widmie Dopplera (jak w modelu Wattersona): suma zespolonych sinusoid
@@ -65,6 +83,7 @@ class AMReceiver extends AudioWorkletProcessor {
     this.imp = 0; this.impAmp = 0; this.impDecay = 1; this.burst = 0; this.burstNext = 0;
     this.lo = 0; this.loF = 0; this.loDrift = 0;   // przeciek generatora odbiornika
     this.fadeLvl = 1; this.buzzLvl = 0; this.whistle = .12; this.excl = [];
+    this.lev = new Leveler(this.sr); this.open = true; this.glimpse = 4;
     this.makeCarpet();
     this.f1 = butterLP(IF_FC, .5412, this.sr); this.f2 = butterLP(IF_FC, 1.3066, this.sr);
     this.sI1 = [0, 0]; this.sI2 = [0, 0]; this.sQ1 = [0, 0]; this.sQ2 = [0, 0];
@@ -84,6 +103,8 @@ class AMReceiver extends AudioWorkletProcessor {
       if (d.buzz !== undefined) this.buzzLvl = d.buzz;
       if (d.whistle !== undefined) this.whistle = d.whistle;
       if (d.excl) this.excl = d.excl;
+      if (d.open !== undefined) this.open = d.open;
+      if (d.glimpse !== undefined) this.glimpse = d.glimpse;
     };
   }
   // krótkie fale są zatłoczone: nośna prawie w każdym kanale 5 kHz, lekko obok siatki → gwizdy dudnień
@@ -118,6 +139,10 @@ class AMReceiver extends AudioWorkletProcessor {
     // pioruny: seria kilku wyładowań w odstępach dziesiątek ms
     if (this.burst <= 0 && Math.random() < this.impRate * .15 * dtB) { this.burst = 2 + Math.floor(Math.random() * 6); this.burstNext = 0; }
     const nIF = sig * Math.sqrt(2 * IF_NOISE);
+    let car = 0;
+    for (const i of near) if (Math.abs(this.freq[i] - this.xt) < .12) car += this.ampNow[i] ** 2;
+    for (const c of cnear) if (Math.abs(c.f - this.xt) < .12) car += c.A * c.A;
+    const quiet = car < nIF * nIF * 2;
     const agcFloor = nIF * (1.25 + .6 / (this.hiss + .05));   // im mniejszy „szum”, tym mniej ARW podbija pusty eter
 
     for (let k = 0; k < L; k++) {
@@ -178,7 +203,7 @@ class AMReceiver extends AudioWorkletProcessor {
       this.agc += (g - this.agc) * .002;
       const y = e * this.agc;
       const dc = y - this.dcX + .995 * this.dcY; this.dcX = y; this.dcY = dc;   // kondensator sprzęgający
-      out[k] = Math.tanh(biq(this.tone, this.sT, dc) * 1.2) * .5;
+      out[k] = this.lev.run(Math.tanh(biq(this.tone, this.sT, dc) * 1.2) * .5, quiet, this.open, this.glimpse);
     }
     if (outputs[0][1]) outputs[0][1].set(out);
     return true;
