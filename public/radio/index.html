@@ -57,6 +57,8 @@ h1 span { color: var(--magenta); }
 .ctl { display: grid; gap: 4px; }
 .ctl input[type=range] { width: 100%; accent-color: var(--magenta); }
 .ctl .row { display: flex; justify-content: space-between; gap: 8px; }
+.ctl select { font: inherit; font-size: 14px; color: var(--cream); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; width: 100%; }
+.ctl select:focus-visible { outline: 2px solid var(--magenta); outline-offset: 2px; }
 .ctl output { font-family: var(--f-mono); font-size: 12px; color: var(--cream); font-variant-numeric: tabular-nums; }
 
 .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -129,6 +131,8 @@ button { font: inherit; cursor: pointer; }
     </div>
 
     <div class="controls">
+      <label class="ctl" for="model"><span class="row"><span class="label">Brzmienie</span></span><select id="model"><option value="2">Prawdziwy eter (v2)</option><option value="1">Bazowe (v1 · reset)</option></select></label>
+      <label class="ctl" for="ether"><span class="row"><span class="label">Gęstość eteru</span><output id="etherOut"></output></span><input id="ether" type="range" min="0" max="150" value="100"></label>
       <label class="ctl" for="thr"><span class="row"><span class="label">Czułość mikrofonu</span><output id="thrOut"></output></span><input id="thr" type="range" min="1" max="60" value="18"></label>
       <label class="ctl" for="micGain"><span class="row"><span class="label">Głośność głosu</span><output id="micGainOut"></output></span><input id="micGain" type="range" min="0" max="300" value="120"></label>
       <label class="ctl" for="noise"><span class="row"><span class="label">Głośność szumu</span><output id="noiseOut"></output></span><input id="noise" type="range" min="0" max="100" value="55"></label>
@@ -145,7 +149,7 @@ button { font: inherit; cursor: pointer; }
 
   <div class="help">
     <div>Klawisze pokazane na padach odpalają audycje, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> łapie najbliższą stację na skali, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
-    <div>Pod spodem działa symulacja prawdziwego odbiornika UKF: każda stacja jest modulowana na nośną FM, dochodzi szum radiowy, filtr i demodulator. Szum, trzaski i rwanie głosu przy złym dostrojeniu biorą się z fizyki, a gałką kręci losowa ręka. Oprócz padów nadają „obce” stacje, alfabet Morse’a i puste nośne.</div>
+    <div>Pod spodem działa symulacja prawdziwego odbiornika UKF: każda stacja jest modulowana na nośną FM, dochodzi szum radiowy, filtr i demodulator. Szum, trzaski i rwanie głosu przy złym dostrojeniu biorą się z fizyki, a gałką kręci losowa ręka. Oprócz padów nadają „obce” stacje, alfabet Morse’a i puste nośne. W wersji v2 eter jest gęsty: dziesiątki dalekich stacji na granicy słyszalności, zaniki wielodrogowe i zakłócenia z urządzeń w sieci, więc szum ciągle się zmienia. „Gęstość eteru” ustawia, ile tych dalekich stacji się przebija.</div>
     <div>Ostatnie pady są Wasze: <b>● nagraj</b> z mikrofonu albo <b>⇪ wgraj</b> plik audio (mp3, m4a, wav…) z komputera lub telefonu. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
     <details class="credits">
@@ -218,10 +222,11 @@ function syncOutputs() {
   setOut('purity', val('purity') + '%');
   setOut('lockTime', (val('lockTime') / 10).toFixed(1) + ' s');
   setOut('hang', (val('hang') / 10).toFixed(1) + ' s');
+  setOut('ether', val('ether') + '%');
   $('micThr').style.left = Math.min(100, val('thr') / 60 * 100) + '%';
   if (N.micIn) N.micIn.gain.setTargetAtTime(val('micGain') / 100, ctx.currentTime, 0.05);
 }
-['thr', 'micGain', 'noise', 'purity', 'lockTime', 'hang'].forEach(id => $(id).addEventListener('input', syncOutputs));
+['thr', 'micGain', 'noise', 'purity', 'lockTime', 'hang', 'ether'].forEach(id => $(id).addEventListener('input', syncOutputs));
 syncOutputs();
 
 /* ───────────── Materiał dźwiękowy ───────────── */
@@ -291,10 +296,13 @@ function buildGraph() {
   for (const def of ALL) makeStation(def);
   makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
   N.list = Object.values(st);
-  N.rx = new AudioWorkletNode(c, 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+  N.model = $('model').value;
+  N.rx = new AudioWorkletNode(c, N.model === '1' ? 'fm-receiver-v1' : 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   N.list.forEach((s, i) => { s.idx = i; s.in.connect(N.rx, 0, i); });
   N.rx.connect(N.tube);
   N.freqArr = new Float32Array(N.list.length); N.ampArr = new Float32Array(N.list.length);
+  // dalekie stacje „dywanu” biorą program z nadajników tła (nie z padów ani mikrofonu)
+  N.rx.port.postMessage({ carpetSrc: N.list.filter(s => !s.pad && !s.mic).map(s => s.idx) });
 
   // przydźwięk sieci 50 Hz — cichutki, z wnętrza odbiornika
   N.hum = c.createOscillator(); N.hum.type = 'sawtooth'; N.hum.frequency.value = 50;
@@ -323,7 +331,7 @@ function makeStation(def) {
   st[def.id] = s;
 }
 function startLoop(s) {
-  if (!s.buf || s.mic) return;
+  if (!s.buf || s.mic || !ctx || s.in.context !== ctx) return;   // stare ładowanie po przełączeniu brzmienia
   if (s.src) { try { s.src.stop(); } catch (e) {} }
   s.src = ctx.createBufferSource(); s.src.buffer = s.buf; s.src.loop = true;
   s.src.connect(s.in); s.src.start(0, Math.random() * s.buf.duration); s.playing = false;
@@ -532,6 +540,7 @@ function tick(nowMs) {
     sigma: .025 + (1 - purity) * .22,    // im mniejsza czystość, tym słabszy sygnał względem szumu
     hiss: noiseLvl * .3,
     impRate: .25 + noiseLvl * .9,
+    carpet: val('ether') / 100,
   });
   N.humG.gain.setTargetAtTime(noiseLvl * (.003 + .012 * sMax * (1 - sMax)), ctx.currentTime, .05);
 
@@ -593,7 +602,7 @@ function draw(tt) {
   dpr = fit(scope); g = scope.getContext('2d'); const SW = scope.width, SH = scope.height;
   g.clearRect(0, 0, SW, SH);
   g.strokeStyle = 'rgba(164,198,57,.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, SH / 2); g.lineTo(SW, SH / 2); g.stroke();
-  if (ctx) {
+  if (ctx && N.analyser) {
     N.analyser.getByteTimeDomainData(scopeBuf);
     g.strokeStyle = tt > .5 ? '#7CFF6B' : '#A4C639'; g.lineWidth = 1.5 * dpr; g.beginPath();
     for (let i = 0; i < scopeBuf.length; i++) { const px = i / (scopeBuf.length - 1) * SW, py = (scopeBuf[i] / 255) * SH; i ? g.lineTo(px, py) : g.moveTo(px, py); }
@@ -628,6 +637,7 @@ async function powerOn() {
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   await ctx.resume();
   await ctx.audioWorklet.addModule('/radio/fm-receiver.js');
+  await ctx.audioWorklet.addModule('/radio/fm-receiver-v1.js');
   buildGraph(); syncOutputs(); setHand('sweep');
   $('power').hidden = true; $('liveButtons').hidden = false;
   loadSamples();
@@ -641,6 +651,11 @@ async function powerOff() {
   $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = 'UKF · 87,5–108 MHz';
 }
 $('powerBtn').addEventListener('click', powerOn);
+try { const m = localStorage.getItem('radio-model'); if (m) $('model').value = m; } catch (e) {}
+$('model').addEventListener('change', async () => {
+  try { localStorage.setItem('radio-model', $('model').value); } catch (e) {}
+  if (ctx) { await powerOff(); await powerOn(); }
+});
 $('offBtn').addEventListener('click', powerOff);
 $('micBtn').addEventListener('click', toggleMic);
 $('stopBtn').addEventListener('click', stopAll);
