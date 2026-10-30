@@ -131,7 +131,7 @@ button { font: inherit; cursor: pointer; }
     </div>
 
     <div class="controls">
-      <label class="ctl" for="model"><span class="row"><span class="label">Brzmienie</span></span><select id="model"><option value="2">Prawdziwy eter (v2)</option><option value="1">Bazowe (v1 · reset)</option></select></label>
+      <label class="ctl" for="model"><span class="row"><span class="label">Brzmienie</span></span><select id="model"><option value="2">UKF · prawdziwy eter (v2)</option><option value="3">Krótkie fale · 49 m</option><option value="1">Bazowe (v1 · reset)</option></select></label>
       <label class="ctl" for="ether"><span class="row"><span class="label">Gęstość eteru</span><output id="etherOut"></output></span><input id="ether" type="range" min="0" max="150" value="100"></label>
       <label class="ctl" for="thr"><span class="row"><span class="label">Czułość mikrofonu</span><output id="thrOut"></output></span><input id="thr" type="range" min="1" max="60" value="18"></label>
       <label class="ctl" for="micGain"><span class="row"><span class="label">Głośność głosu</span><output id="micGainOut"></output></span><input id="micGain" type="range" min="0" max="300" value="120"></label>
@@ -149,7 +149,7 @@ button { font: inherit; cursor: pointer; }
 
   <div class="help">
     <div>Klawisze pokazane na padach odpalają audycje, drugi raz zatrzymuje. <kbd>M</kbd> włącza mikrofon, <kbd>Spacja</kbd> łapie najbliższą stację na skali, <kbd>Esc</kbd> zatrzymuje wszystko.</div>
-    <div>Pod spodem działa symulacja prawdziwego odbiornika UKF: każda stacja jest modulowana na nośną FM, dochodzi szum radiowy, filtr i demodulator. Szum, trzaski i rwanie głosu przy złym dostrojeniu biorą się z fizyki, a gałką kręci losowa ręka. Oprócz padów nadają „obce” stacje, alfabet Morse’a i puste nośne. W wersji v2 eter jest gęsty: dziesiątki dalekich stacji na granicy słyszalności, zaniki wielodrogowe i zakłócenia z urządzeń w sieci, więc szum ciągle się zmienia. „Gęstość eteru” ustawia, ile tych dalekich stacji się przebija.</div>
+    <div>Pod spodem działa symulacja prawdziwego odbiornika UKF: każda stacja jest modulowana na nośną FM, dochodzi szum radiowy, filtr i demodulator. Szum, trzaski i rwanie głosu przy złym dostrojeniu biorą się z fizyki, a gałką kręci losowa ręka. Oprócz padów nadają „obce” stacje, alfabet Morse’a i puste nośne. W wersji v2 eter jest gęsty: dziesiątki dalekich stacji na granicy słyszalności, zaniki wielodrogowe i zakłócenia z urządzeń w sieci, więc szum ciągle się zmienia. „Gęstość eteru” ustawia, ile tych dalekich stacji się przebija. Krótkie fale to osobny odbiornik AM: stacje co 5 kHz, gwizdy dudniących nośnych, falowanie odbić od jonosfery i trzaski burzowe.</div>
     <div>Ostatnie pady są Wasze: <b>● nagraj</b> z mikrofonu albo <b>⇪ wgraj</b> plik audio (mp3, m4a, wav…) z komputera lub telefonu. Nagranie zostaje w tej przeglądarce i od razu nadaje na swojej częstotliwości.</div>
     <div>Mikrofon przy głośnikach w sali może sprzęgać. Najlepiej mikrofon kierunkowy, z dala od kolumn, i rozsądna głośność głosu.</div>
     <details class="credits">
@@ -297,7 +297,7 @@ function buildGraph() {
   makeStation({ id: 'mic', f: freeFreq(), t: 'NA ŻYWO', mic: true });
   N.list = Object.values(st);
   N.model = $('model').value;
-  N.rx = new AudioWorkletNode(c, N.model === '1' ? 'fm-receiver-v1' : 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
+  N.rx = new AudioWorkletNode(c, { 1: 'fm-receiver-v1', 3: 'am-receiver' }[N.model] || 'fm-receiver', { numberOfInputs: N.list.length, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit' });
   N.list.forEach((s, i) => { s.idx = i; s.in.connect(N.rx, 0, i); });
   N.rx.connect(N.tube);
   N.freqArr = new Float32Array(N.list.length); N.ampArr = new Float32Array(N.list.length);
@@ -549,9 +549,20 @@ function tick(nowMs) {
   if (target && ts > .6) { pill.textContent = 'NASTROJONE'; pill.className = 'pill on'; }
   else if (target) { pill.textContent = 'ŁAPIĘ STACJĘ…'; pill.className = 'pill tuning'; }
   else { pill.textContent = micOn ? 'SZUKAM · MIKROFON NASŁUCHUJE' : 'SZUKAM…'; pill.className = micOn ? 'pill mic' : 'pill'; }
-  const mhz = x.toFixed(1).replace('.', ',') + ' MHz';
+  const mhz = fmtF(x);
   $('station').textContent = target && target.t ? target.t + ' · ' + mhz : mhz;
   draw(target ? ts : sMax * .6);
+}
+
+/* ───────────── Pasmo: UKF albo krótkie fale ───────────── */
+// pozycja igły jest wspólna; na krótkich falach 0,1 działki = 5 kHz w paśmie 49 m (5900–6925 kHz)
+const isSW = () => $('model').value === '3';
+const kHz = f => Math.round(5900 + (f - 87.5) * 50);
+const fmtF = f => isSW() ? kHz(f).toLocaleString('pl-PL') + ' kHz' : f.toFixed(1).replace('.', ',') + ' MHz';
+const bandName = () => isSW() ? 'KF · 49 m · 5900–6925 kHz' : 'UKF · 87,5–108 MHz';
+function relabel() {
+  for (const p of PADS) { const el = padEl(p.id); if (el) el.querySelector('.k span:last-child').textContent = isSW() ? kHz(p.f) : p.f.toFixed(1).replace('.', ','); }
+  if (!ctx) $('station').textContent = bandName();
 }
 
 /* ───────────── Rysowanie: skala, magiczne oko, oscyloskop ───────────── */
@@ -570,9 +581,9 @@ function draw(tt) {
   for (let f = 88; f <= 108; f += .5) {
     const big = f % 2 === 0, px = X(f);
     g.beginPath(); g.moveTo(px, H * .52); g.lineTo(px, H * (big ? .30 : .42)); g.stroke();
-    if (big) g.fillText(String(f), px, H * .22);
+    if (big) g.fillText(isSW() ? String(kHz(f)) : String(f), px, H * .22);
   }
-  g.font = `${9 * dpr}px "Fira Code", monospace`; g.textAlign = 'left'; g.fillText('MHz', 4 * dpr, H * .22);
+  g.font = `${9 * dpr}px "Fira Code", monospace`; g.textAlign = 'left'; if (!isSW()) g.fillText('MHz', 4 * dpr, H * .22);
   for (const a of ALL) {
     const s = st[a.id], live = s && s.buf;
     g.fillStyle = a.pad ? (live ? 'rgba(217,70,239,.9)' : 'rgba(217,70,239,.25)') : 'rgba(245,184,90,.45)';
@@ -580,7 +591,7 @@ function draw(tt) {
   }
   if (micOn && st.mic) { g.fillStyle = '#A4C639'; g.fillRect(X(st.mic.f) - 1.5 * dpr, H * .6, 3 * dpr, H * .1); }
   g.fillStyle = 'rgba(253,244,255,.55)'; g.font = `${10 * dpr}px "Sora", sans-serif`; g.textAlign = 'center';
-  ['Warszawa', 'Radom', 'Wilno', 'Lwów', 'Ciechanów', 'Niebawem'].forEach((n, i) => g.fillText(n, X(89 + i * 3.7), H * .88));
+  (isSW() ? ['Londyn', 'Watykan', 'Paryż', 'Moskwa', 'Wiedeń', 'Niebawem'] : ['Warszawa', 'Radom', 'Wilno', 'Lwów', 'Ciechanów', 'Niebawem']).forEach((n, i) => g.fillText(n, X(89 + i * 3.7), H * .88));
   const NX = X(x);
   g.strokeStyle = '#ff5a3c'; g.lineWidth = 2.5 * dpr; g.shadowColor = '#ff5a3c'; g.shadowBlur = 8 * dpr * glow;
   g.beginPath(); g.moveTo(NX, 4 * dpr); g.lineTo(NX, H - 4 * dpr); g.stroke(); g.shadowBlur = 0;
@@ -638,6 +649,7 @@ async function powerOn() {
   await ctx.resume();
   await ctx.audioWorklet.addModule('/radio/fm-receiver.js');
   await ctx.audioWorklet.addModule('/radio/fm-receiver-v1.js');
+  await ctx.audioWorklet.addModule('/radio/am-receiver.js');
   buildGraph(); syncOutputs(); setHand('sweep');
   $('power').hidden = true; $('liveButtons').hidden = false;
   loadSamples();
@@ -648,12 +660,14 @@ async function powerOff() {
   micOn = micActive = false; $('micBtn').classList.remove('active');
   await ctx.close(); ctx = null; N = {}; for (const k in st) delete st[k]; tuning = null;
   $('power').hidden = false; $('liveButtons').hidden = true;
-  $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = 'UKF · 87,5–108 MHz';
+  $('state').textContent = 'WYŁĄCZONE'; $('state').className = 'pill'; $('station').textContent = bandName();
 }
 $('powerBtn').addEventListener('click', powerOn);
 try { const m = localStorage.getItem('radio-model'); if (m) $('model').value = m; } catch (e) {}
+relabel();
 $('model').addEventListener('change', async () => {
   try { localStorage.setItem('radio-model', $('model').value); } catch (e) {}
+  relabel();
   if (ctx) { await powerOff(); await powerOn(); }
 });
 $('offBtn').addEventListener('click', powerOff);
